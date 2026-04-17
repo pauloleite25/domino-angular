@@ -33,31 +33,35 @@
                             *ngFor="let entry of layoutTiles"
                             class="tile-position"
                             [ngStyle]="toBoardStyle(entry.x, entry.y)">
-                            <app-domino-tile-visual
-                                [left]="entry.tile.left"
-                                [right]="entry.tile.right"
-                                [orientation]="entry.orientation"
-                                [fixedLongSidePx]="tileLongSidePx"
-                                [disabled]="true">
-                            </app-domino-tile-visual>
-                        </div>
+                            <div
+                                class="tile-hitbox"
+                                [class.target]="isTilePlayableTarget(entry)"
+                                [class.selected]="isTileSelectedTarget(entry)"
+                                [class.multi-target]="targetSidesForTile(entry).length > 1"
+                                (click)="handleTileClick(entry)">
+                                <app-domino-tile-visual
+                                    [left]="entry.tile.left"
+                                    [right]="entry.tile.right"
+                                    [orientation]="entry.orientation"
+                                    [fixedLongSidePx]="tileLongSidePx"
+                                    [playable]="isTilePlayableTarget(entry)"
+                                    playableStyle="board"
+                                    [selected]="isTileSelectedTarget(entry)"
+                                    [disabled]="true">
+                                </app-domino-tile-visual>
 
-                        <div
-                            *ngFor="let marker of endMarkers"
-                            class="end-marker-position"
-                            [ngStyle]="toBoardStyle(marker.x, marker.y)">
-                            <span *ngIf="marker.optionNumber !== null" class="option-number">{{ marker.optionNumber }}</span>
-                            <button
-                                type="button"
-                                class="end-marker"
-                                [class.blocked]="visualEndState(marker.side) === 'blocked'"
-                                [class.occupied]="visualEndState(marker.side) === 'occupied'"
-                                [class.available]="visualEndState(marker.side) === 'available'"
-                                [class.selected]="selectedEnd === marker.side"
-                                [disabled]="!isEndSelectable(marker.side)"
-                                [attr.aria-label]="'Ponta ' + marker.side"
-                                (click)="selectEnd.emit(marker.side)">
-                            </button>
+                                <button
+                                    *ngFor="let side of targetSidesForTile(entry)"
+                                    type="button"
+                                    class="tile-end-hit"
+                                    [class.north]="side === 'north'"
+                                    [class.east]="side === 'east'"
+                                    [class.south]="side === 'south'"
+                                    [class.west]="side === 'west'"
+                                    [attr.aria-label]="'Ponta ' + side"
+                                    (click)="handleTileEdgeClick(side, $event)">
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

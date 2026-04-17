@@ -72,8 +72,8 @@ h2 {
     border-radius: 8px;
     background: transparent;
     cursor: pointer;
-    padding: 0;
-    transition: transform 120ms ease;
+    padding: 2px;
+    transition: transform 120ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }
 
 .tile-button:not(.disabled):hover {
@@ -82,6 +82,15 @@ h2 {
 
 .tile-button.disabled {
     cursor: not-allowed;
+}
+
+.tile-button.playable:not(.disabled) {
+    background: rgb(16 185 129 / 10%);
+    box-shadow: 0 0 0 1px rgb(16 185 129 / 35%);
+}
+
+.tile-button.playable:not(.disabled):hover {
+    box-shadow: 0 0 0 1px rgb(16 185 129 / 55%), 0 6px 16px rgb(16 185 129 / 20%);
 }
 
 @media (max-width: 640px) {

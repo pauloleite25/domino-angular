@@ -1,6 +1,7 @@
 import { Component, Input } from "@angular/core";
 
 type DominoOrientation = "horizontal" | "vertical";
+type PlayableStyle = "default" | "hand" | "board";
 
 type Point = {
     readonly x: number;
@@ -30,6 +31,7 @@ export class DominoTileVisualComponent {
     @Input() selected = false;
     @Input() playable = false;
     @Input() disabled = false;
+    @Input() playableStyle: PlayableStyle = "default";
 
     readonly pipRadius = 4.5;
 
@@ -82,14 +84,38 @@ export class DominoTileVisualComponent {
         if (this.selected) {
             return "#1d4ed8";
         }
-        return this.playable ? "#047857" : "#18181b";
+        if (!this.playable) {
+            return "#18181b";
+        }
+
+        if (this.playableStyle === "hand") {
+            return "#166534";
+        }
+
+        if (this.playableStyle === "board") {
+            return "#b45309";
+        }
+
+        return "#047857";
     }
 
     get fillColor(): string {
         if (this.selected) {
             return "#dbeafe";
         }
-        return this.playable ? "#ecfdf5" : "#ffffff";
+        if (!this.playable) {
+            return "#ffffff";
+        }
+
+        if (this.playableStyle === "hand") {
+            return "#dcfce7";
+        }
+
+        if (this.playableStyle === "board") {
+            return "#fef3c7";
+        }
+
+        return "#ecfdf5";
     }
 
     get pipColor(): string {

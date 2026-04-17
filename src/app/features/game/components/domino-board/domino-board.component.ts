@@ -11,13 +11,6 @@ const MARKER_TIP_OFFSET_UNITS = 0.45;
 const MIN_BOARD_SCALE_DESKTOP = 0.45;
 const MIN_BOARD_SCALE_MOBILE = 0.26;
 
-type EndMarker = {
-    readonly side: BoardSide;
-    readonly x: number;
-    readonly y: number;
-    readonly optionNumber: number | null;
-};
-
 export type BoardPlayer = {
     readonly id: PlayerId;
     readonly team: TeamId;
@@ -173,15 +166,6 @@ export class DominoBoardComponent {
         };
     }
 
-    get endMarkers(): readonly EndMarker[] {
-        return this.sides.map((side) => ({
-            side,
-            x: this.markerPositionsBySide[side].x,
-            y: this.markerPositionsBySide[side].y,
-            optionNumber: this.moveOptionBySide[side] ?? null,
-        }));
-    }
-
     get selectableCount(): number {
         return this.selectableEnds.length;
     }
@@ -226,5 +210,38 @@ export class DominoBoardComponent {
 
     isEndSelectable(side: BoardSide): boolean {
         return this.visualEndState(side) !== "blocked" && this.selectableEnds.includes(side);
+    }
+
+    private getTipTileId(side: BoardSide): string {
+        const branchLength = this.boardBranches[side]?.length ?? 0;
+        return branchLength > 0 ? `${side}-${branchLength - 1}` : "center";
+    }
+
+    targetSidesForTile(entry: LayoutTile): readonly BoardSide[] {
+        return this.selectableEnds.filter((side) => this.getTipTileId(side) === entry.id);
+    }
+
+    isTilePlayableTarget(entry: LayoutTile): boolean {
+        return this.targetSidesForTile(entry).length > 0;
+    }
+
+    isTileSelectedTarget(entry: LayoutTile): boolean {
+        if (this.selectedEnd === null) {
+            return false;
+        }
+
+        return this.getTipTileId(this.selectedEnd) === entry.id;
+    }
+
+    handleTileClick(entry: LayoutTile): void {
+        const sides = this.targetSidesForTile(entry);
+        if (sides.length === 1) {
+            this.selectEnd.emit(sides[0]);
+        }
+    }
+
+    handleTileEdgeClick(side: BoardSide, event: MouseEvent): void {
+        event.stopPropagation();
+        this.selectEnd.emit(side);
     }
 }

@@ -17,6 +17,7 @@
             *ngFor="let tile of hand"
             type="button"
             class="tile-button"
+            [class.playable]="isPlayable(tile)"
             [disabled]="!canInteract || !isPlayable(tile)"
             [class.disabled]="!canInteract || !isPlayable(tile)"
             (click)="selectTile.emit(tile)">
@@ -27,6 +28,7 @@
                 [fixedLongSidePx]="48"
                 [selected]="selectedTileKey === tileKey(tile)"
                 [playable]="isPlayable(tile)"
+                playableStyle="hand"
                 [disabled]="!canInteract || !isPlayable(tile)">
             </app-domino-tile-visual>
         </button>

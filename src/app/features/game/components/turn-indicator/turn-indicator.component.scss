@@ -58,3 +58,27 @@ h2 {
 .bar.warning {
     background: #f59e0b;
 }
+
+@media (max-width: 640px) {
+    .turn-panel {
+        padding: 8px;
+    }
+
+    h2 {
+        margin-bottom: 6px;
+        font-size: 15px;
+    }
+
+    .line {
+        font-size: 12px;
+    }
+
+    .meta,
+    .timer-label {
+        font-size: 11px;
+    }
+
+    .timer {
+        margin-top: 8px;
+    }
+}
