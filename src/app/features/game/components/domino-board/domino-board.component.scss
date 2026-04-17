@@ -29,6 +29,10 @@ h2 {
     font-size: 12px;
 }
 
+.north-seat-desktop {
+    display: block;
+}
+
 .empty-board {
     border: 1px dashed #d4d4d8;
     border-radius: 8px;
@@ -51,6 +55,7 @@ h2 {
 }
 
 .board-area {
+    position: relative;
     display: flex;
     min-height: 0;
     flex: 1;
@@ -213,6 +218,10 @@ h2 {
     background: #71717a;
 }
 
+.mobile-seats {
+    display: none;
+}
+
 @media (max-width: 640px) {
     .board-panel {
         padding: 6px;
@@ -235,8 +244,84 @@ h2 {
         padding: 2px;
     }
 
+    .canvas-viewport {
+        overflow: auto;
+        touch-action: pan-x pan-y;
+    }
+
+    .canvas-viewport::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .canvas-viewport::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: #d4d4d8;
+    }
+
     .side-seat {
         display: none;
+    }
+
+    .north-seat-desktop {
+        display: none;
+    }
+
+    .mobile-seats {
+        position: absolute;
+        inset: 0;
+        display: block;
+        pointer-events: none;
+    }
+
+    .mobile-player {
+        position: absolute;
+        z-index: 3;
+        border-radius: 6px;
+        background: rgb(244 244 245 / 92%);
+        color: #3f3f46;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 1;
+        padding: 4px 3px;
+        text-align: center;
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        pointer-events: none;
+    }
+
+    .mobile-player.current {
+        background: #2563eb;
+        color: #ffffff;
+    }
+
+    .mobile-player.next {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .mobile-player.north {
+        left: 50%;
+        top: 4px;
+        transform: translateX(-50%);
+    }
+
+    .mobile-player.south {
+        left: 50%;
+        bottom: 4px;
+        transform: translateX(-50%);
+    }
+
+    .mobile-player.west {
+        left: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .mobile-player.east {
+        right: 4px;
+        top: 50%;
+        transform: translateY(-50%);
     }
 
 }

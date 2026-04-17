@@ -2,9 +2,9 @@
     <div class="board-header">
         <h2>Mesa</h2>
 
-        <ng-container *ngIf="openingTile">
+        <div *ngIf="openingTile" class="north-seat-desktop">
             <ng-container *ngTemplateOutlet="seatTemplate; context: { player: getPlayer('C'), seat: 'north' }"></ng-container>
-        </ng-container>
+        </div>
 
         <span class="clickable-count">Pontas clicaveis: <strong>{{ selectableCount }}</strong></span>
     </div>
@@ -66,6 +66,21 @@
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="mobile-seats">
+            <span *ngIf="getPlayer('C') as player" class="mobile-player north" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
+                {{ player.id }}
+            </span>
+            <span *ngIf="getPlayer('B') as player" class="mobile-player west" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
+                {{ player.id }}
+            </span>
+            <span *ngIf="getPlayer('D') as player" class="mobile-player east" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
+                {{ player.id }}
+            </span>
+            <span *ngIf="getPlayer('A') as player" class="mobile-player south" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
+                {{ player.id }}
+            </span>
         </div>
 
         <div class="side-seat east-seat">

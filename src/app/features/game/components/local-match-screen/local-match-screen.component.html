@@ -15,14 +15,6 @@
     <main class="game-shell">
         <div class="game-grid">
             <div class="main-column">
-                <header class="mobile-header">
-                    <div>
-                        <h1>Domino Local</h1>
-                        <p *ngIf="selectionHint">{{ selectionHint }}</p>
-                    </div>
-                    <button type="button" class="primary small" (click)="handleStartNewMatch()">Nova partida</button>
-                </header>
-
                 <div class="board-holder">
                     <app-domino-board
                         [board]="match.roundState!.board"
@@ -81,14 +73,6 @@
             </div>
 
             <aside class="side-column">
-                <header class="desktop-header">
-                    <div>
-                        <h1>Domino Local</h1>
-                        <p *ngIf="selectionHint">{{ selectionHint }}</p>
-                    </div>
-                    <button type="button" class="primary small" (click)="handleStartNewMatch()">Nova partida</button>
-                </header>
-
                 <app-score-panel [score]="match.score"></app-score-panel>
                 <app-turn-indicator
                     [currentPlayer]="match.currentPlayer!"
@@ -118,6 +102,10 @@
             (viewFinal)="hasDismissedMatchModal = true"
             (newMatch)="handleStartNewMatch()">
         </app-match-result-modal>
+
+        <button type="button" class="new-match-quiet" (click)="handleStartNewMatch()">
+            Nova partida
+        </button>
 
         <div *ngIf="match.galoPopup" class="galo-overlay" role="dialog" aria-modal="true" aria-labelledby="galo-title">
             <div class="galo-modal">

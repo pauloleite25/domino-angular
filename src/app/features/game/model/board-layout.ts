@@ -40,6 +40,13 @@ const BRANCH_FLOW: Record<
   west: { primary: "west", secondary: "north" },
 };
 
+const OPPOSITE_SIDE: Record<BoardSide, BoardSide> = {
+  north: "south",
+  south: "north",
+  east: "west",
+  west: "east",
+};
+
 const SIDE_DELTA: Record<BoardSide, { readonly dx: number; readonly dy: number }> = {
   north: { dx: 0, dy: -1 },
   east: { dx: 1, dy: 0 },
@@ -106,16 +113,9 @@ function shouldStayOnPrimaryAxis(
   placedOnPrimary: readonly DominoTile[],
   currentTile: DominoTile,
 ): boolean {
-  if (placedOnPrimary.length < 4) {
-    return true;
-  }
-
-  if (placedOnPrimary.length > 4) {
-    return false;
-  }
-
-  const hasDoubleAmongFirstFour = placedOnPrimary.some((tile) => isDouble(tile));
-  return hasDoubleAmongFirstFour || isDouble(currentTile);
+  void currentTile;
+  // Regra de layout: no maximo 4 pecas antes de mudar de direcao.
+  return placedOnPrimary.length < 4;
 }
 
 function getTurningTilePosition(
@@ -136,6 +136,33 @@ function getTurningTilePosition(
     secondaryDirection,
     secondaryDistance,
   );
+}
+
+function getBalancedBranchFlow(
+  branchSide: BoardSide,
+  branches: BranchTiles,
+): { readonly primary: BoardSide; readonly secondary: BoardSide } {
+  const baseFlow = BRANCH_FLOW[branchSide];
+  const oppositeSide = OPPOSITE_SIDE[branchSide];
+  const branchLength = branches[branchSide].length;
+  const oppositeLength = branches[oppositeSide].length;
+
+  // Heurística de balanceamento visual:
+  // quando um galho está maior que o oposto, ele tenta "dobrar" para o outro lado.
+  if (branchLength > oppositeLength) {
+    if (baseFlow.secondary === "east") {
+      return { ...baseFlow, secondary: "west" };
+    }
+    if (baseFlow.secondary === "west") {
+      return { ...baseFlow, secondary: "east" };
+    }
+    if (baseFlow.secondary === "north") {
+      return { ...baseFlow, secondary: "south" };
+    }
+    return { ...baseFlow, secondary: "north" };
+  }
+
+  return baseFlow;
 }
 
 export function getBoardLayout(
@@ -164,7 +191,7 @@ export function getBoardLayout(
   };
 
   (["north", "east", "south", "west"] as const).forEach((branchSide) => {
-    const flow = BRANCH_FLOW[branchSide];
+    const flow = getBalancedBranchFlow(branchSide, branches);
     const branchTiles = branches[branchSide];
 
     let previousPosition: GridPoint = { x: 0, y: 0 };

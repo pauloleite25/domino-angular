@@ -156,6 +156,25 @@
     margin-top: 10px;
 }
 
+.new-match-quiet {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    z-index: 15;
+    border: 1px solid #d4d4d8;
+    border-radius: 8px;
+    background: rgb(255 255 255 / 88%);
+    color: #3f3f46;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 7px 10px;
+    backdrop-filter: blur(2px);
+}
+
+.new-match-quiet:hover {
+    background: #ffffff;
+}
+
 .galo-overlay {
     position: fixed;
     inset: 0;
@@ -247,8 +266,9 @@
     }
 
     .board-holder {
-        min-height: 360px;
-        max-height: 58dvh;
+        min-height: 86dvh;
+        height: 86dvh;
+        max-height: 86dvh;
         flex: none;
     }
 }
@@ -272,15 +292,6 @@
         font-size: 11px;
     }
 
-    .mobile-header {
-        align-items: stretch;
-        flex-wrap: wrap;
-    }
-
-    .mobile-header > button {
-        width: 100%;
-    }
-
     .pass-box {
         align-items: flex-start;
         flex-direction: column;
@@ -292,8 +303,9 @@
     }
 
     .board-holder {
-        min-height: 340px;
-        max-height: 54dvh;
+        min-height: 86dvh;
+        height: 86dvh;
+        max-height: 86dvh;
     }
 
     .mobile-details summary {
@@ -310,5 +322,12 @@
 
     .galo-modal h2 {
         font-size: 20px;
+    }
+
+    .new-match-quiet {
+        right: 8px;
+        bottom: 8px;
+        font-size: 10px;
+        padding: 6px 8px;
     }
 }

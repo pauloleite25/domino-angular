@@ -3,13 +3,15 @@ import { getPlayableEnds } from "../../../../core/domino";
 import type { BoardSide, BoardState, DominoTile, PlayerId, TeamId } from "../../../../core/domino";
 import { getBoardLayout, LayoutTile } from "../../model/board-layout";
 
-const TILE_LONG_SIDE_PX_DESKTOP = 62;
-const TILE_LONG_SIDE_PX_MOBILE = 46;
+const TILE_LONG_SIDE_PX_DESKTOP = 68;
+const TILE_LONG_SIDE_PX_MOBILE = 51;
 const BOARD_EDGE_PADDING_PX_DESKTOP = 80;
 const BOARD_EDGE_PADDING_PX_MOBILE = 44;
 const MARKER_TIP_OFFSET_UNITS = 0.45;
-const MIN_BOARD_SCALE_DESKTOP = 0.45;
-const MIN_BOARD_SCALE_MOBILE = 0.26;
+const MIN_BOARD_SCALE_DESKTOP = 0.01;
+const MIN_BOARD_SCALE_MOBILE = 0.01;
+const MIN_READABLE_SCALE_MOBILE = 0.38;
+const SCALE_SHRINK_FACTOR = 0.88;
 
 export type BoardPlayer = {
     readonly id: PlayerId;
@@ -57,8 +59,8 @@ export class DominoBoardComponent {
             return this.isMobileViewport ? 760 : 1380;
         }
 
-        const horizontalPadding = this.isMobileViewport ? 28 : 120;
-        return Math.max(320, window.innerWidth - horizontalPadding);
+        const fraction = this.isMobileViewport ? 0.97 : 0.9;
+        return Math.max(260, Math.floor(window.innerWidth * fraction));
     }
 
     private get boardViewportHeight(): number {
@@ -66,8 +68,8 @@ export class DominoBoardComponent {
             return this.isMobileViewport ? 520 : 860;
         }
 
-        const fraction = this.isMobileViewport ? 0.56 : 0.72;
-        return Math.max(260, Math.floor(window.innerHeight * fraction));
+        const fraction = this.isMobileViewport ? 0.94 : 0.86;
+        return Math.max(220, Math.floor(window.innerHeight * fraction));
     }
 
     private get minBoardScale(): number {
@@ -145,9 +147,16 @@ export class DominoBoardComponent {
     }
 
     get boardScale(): number {
+        const fitScale = Math.min(this.boardViewportWidth / this.boardCanvasWidth, this.boardViewportHeight / this.boardCanvasHeight);
+        const softenedFitScale =
+            fitScale >= 1 ? fitScale : 1 - (1 - fitScale) * SCALE_SHRINK_FACTOR;
+
+        const readableScale = this.isMobileViewport ? MIN_READABLE_SCALE_MOBILE : this.minBoardScale;
+
         return Math.max(
             this.minBoardScale,
-            Math.min(1, this.boardViewportWidth / this.boardCanvasWidth, this.boardViewportHeight / this.boardCanvasHeight),
+            readableScale,
+            softenedFitScale,
         );
     }
 
