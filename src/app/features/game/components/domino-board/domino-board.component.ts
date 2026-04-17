@@ -3,12 +3,13 @@ import { getPlayableEnds } from "../../../../core/domino";
 import type { BoardSide, BoardState, DominoTile, PlayerId, TeamId } from "../../../../core/domino";
 import { getBoardLayout, LayoutTile } from "../../model/board-layout";
 
-const TILE_LONG_SIDE_PX = 62;
-const BOARD_EDGE_PADDING_PX = 80;
+const TILE_LONG_SIDE_PX_DESKTOP = 62;
+const TILE_LONG_SIDE_PX_MOBILE = 46;
+const BOARD_EDGE_PADDING_PX_DESKTOP = 80;
+const BOARD_EDGE_PADDING_PX_MOBILE = 44;
 const MARKER_TIP_OFFSET_UNITS = 0.45;
-const BOARD_VIEWPORT_WIDTH = 1380;
-const BOARD_VIEWPORT_HEIGHT = 860;
-const MIN_BOARD_SCALE = 0.8;
+const MIN_BOARD_SCALE_DESKTOP = 0.45;
+const MIN_BOARD_SCALE_MOBILE = 0.26;
 
 type EndMarker = {
     readonly side: BoardSide;
@@ -44,8 +45,41 @@ export class DominoBoardComponent {
     @Output() selectEnd = new EventEmitter<BoardSide>();
     @Output() playOpening = new EventEmitter<void>();
 
-    readonly tileLongSidePx = TILE_LONG_SIDE_PX;
     readonly sides: readonly BoardSide[] = ["north", "east", "south", "west"];
+
+    get isMobileViewport(): boolean {
+        return typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches;
+    }
+
+    get tileLongSidePx(): number {
+        return this.isMobileViewport ? TILE_LONG_SIDE_PX_MOBILE : TILE_LONG_SIDE_PX_DESKTOP;
+    }
+
+    private get boardEdgePaddingPx(): number {
+        return this.isMobileViewport ? BOARD_EDGE_PADDING_PX_MOBILE : BOARD_EDGE_PADDING_PX_DESKTOP;
+    }
+
+    private get boardViewportWidth(): number {
+        if (typeof window === "undefined") {
+            return this.isMobileViewport ? 760 : 1380;
+        }
+
+        const horizontalPadding = this.isMobileViewport ? 28 : 120;
+        return Math.max(320, window.innerWidth - horizontalPadding);
+    }
+
+    private get boardViewportHeight(): number {
+        if (typeof window === "undefined") {
+            return this.isMobileViewport ? 520 : 860;
+        }
+
+        const fraction = this.isMobileViewport ? 0.56 : 0.72;
+        return Math.max(260, Math.floor(window.innerHeight * fraction));
+    }
+
+    private get minBoardScale(): number {
+        return this.isMobileViewport ? MIN_BOARD_SCALE_MOBILE : MIN_BOARD_SCALE_DESKTOP;
+    }
 
     get openingTile(): DominoTile | null {
         return this.board.openingCarroca;
@@ -94,31 +128,33 @@ export class DominoBoardComponent {
     }
 
     get boardCanvasWidth(): number {
+        const tileLongSidePx = this.tileLongSidePx;
         const maxTileX = this.layoutTiles.reduce((maxValue, tile) => Math.max(maxValue, Math.abs(tile.x)), 0);
         const maxEndX = this.sides.reduce(
             (maxValue, side) => Math.max(maxValue, Math.abs(this.markerPositionsBySide[side].x)),
             0,
         );
         const boardHalfWidth =
-            Math.max(maxTileX, maxEndX) * TILE_LONG_SIDE_PX + TILE_LONG_SIDE_PX / 2 + BOARD_EDGE_PADDING_PX;
-        return Math.max(760, Math.ceil(boardHalfWidth * 2));
+            Math.max(maxTileX, maxEndX) * tileLongSidePx + tileLongSidePx / 2 + this.boardEdgePaddingPx;
+        return Math.max(this.isMobileViewport ? 420 : 760, Math.ceil(boardHalfWidth * 2));
     }
 
     get boardCanvasHeight(): number {
+        const tileLongSidePx = this.tileLongSidePx;
         const maxTileY = this.layoutTiles.reduce((maxValue, tile) => Math.max(maxValue, Math.abs(tile.y)), 0);
         const maxEndY = this.sides.reduce(
             (maxValue, side) => Math.max(maxValue, Math.abs(this.markerPositionsBySide[side].y)),
             0,
         );
         const boardHalfHeight =
-            Math.max(maxTileY, maxEndY) * TILE_LONG_SIDE_PX + TILE_LONG_SIDE_PX / 2 + BOARD_EDGE_PADDING_PX;
-        return Math.max(520, Math.ceil(boardHalfHeight * 2));
+            Math.max(maxTileY, maxEndY) * tileLongSidePx + tileLongSidePx / 2 + this.boardEdgePaddingPx;
+        return Math.max(this.isMobileViewport ? 320 : 520, Math.ceil(boardHalfHeight * 2));
     }
 
     get boardScale(): number {
         return Math.max(
-            MIN_BOARD_SCALE,
-            Math.min(1, BOARD_VIEWPORT_WIDTH / this.boardCanvasWidth, BOARD_VIEWPORT_HEIGHT / this.boardCanvasHeight),
+            this.minBoardScale,
+            Math.min(1, this.boardViewportWidth / this.boardCanvasWidth, this.boardViewportHeight / this.boardCanvasHeight),
         );
     }
 
@@ -151,8 +187,8 @@ export class DominoBoardComponent {
     }
 
     toBoardStyle(x: number, y: number): Record<string, string> {
-        const left = this.boardCanvasWidth / 2 + x * TILE_LONG_SIDE_PX;
-        const top = this.boardCanvasHeight / 2 + y * TILE_LONG_SIDE_PX;
+        const left = this.boardCanvasWidth / 2 + x * this.tileLongSidePx;
+        const top = this.boardCanvasHeight / 2 + y * this.tileLongSidePx;
 
         return {
             left: `${left}px`,

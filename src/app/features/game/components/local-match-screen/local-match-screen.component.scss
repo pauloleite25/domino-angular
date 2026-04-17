@@ -215,8 +215,18 @@
 }
 
 @media (max-width: 1024px) {
+    .game-shell {
+        height: auto;
+        min-height: 100dvh;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
     .game-grid {
         grid-template-columns: minmax(0, 1fr);
+        height: auto;
+        min-height: 100%;
     }
 
     .side-column {
@@ -235,6 +245,12 @@
     .mobile-details {
         display: block;
     }
+
+    .board-holder {
+        min-height: 360px;
+        max-height: 58dvh;
+        flex: none;
+    }
 }
 
 @media (max-width: 640px) {
@@ -244,5 +260,55 @@
 
     .main-column {
         gap: 6px;
+    }
+
+    .desktop-header h1,
+    .mobile-header h1 {
+        font-size: 16px;
+    }
+
+    .desktop-header p,
+    .mobile-header p {
+        font-size: 11px;
+    }
+
+    .mobile-header {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .mobile-header > button {
+        width: 100%;
+    }
+
+    .pass-box {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .pass-box button {
+        width: 100%;
+    }
+
+    .board-holder {
+        min-height: 340px;
+        max-height: 54dvh;
+    }
+
+    .mobile-details summary {
+        font-size: 11px;
+    }
+
+    .mobile-history {
+        height: 180px;
+    }
+
+    .galo-modal {
+        padding: 14px;
+    }
+
+    .galo-modal h2 {
+        font-size: 20px;
     }
 }

@@ -83,3 +83,30 @@ h2 {
 .tile-button.disabled {
     cursor: not-allowed;
 }
+
+@media (max-width: 640px) {
+    .hand-panel {
+        padding: 8px;
+    }
+
+    .count {
+        font-size: 11px;
+    }
+
+    .tiles {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+    }
+
+    .tiles::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .tiles::-webkit-scrollbar-thumb {
+        border-radius: 999px;
+        background: #cbd5e1;
+    }
+}

@@ -120,10 +120,11 @@ h2 {
 }
 
 .end-marker {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     border: 0;
     border-radius: 999px;
+    touch-action: manipulation;
 }
 
 .end-marker.available {
@@ -217,14 +218,53 @@ h2 {
 }
 
 @media (max-width: 640px) {
-    .side-seat {
-        width: 56px;
+    .board-panel {
+        padding: 6px;
     }
 
-    .seat,
-    .seat.side {
-        width: 56px;
-        padding: 5px;
+    .board-header {
+        grid-template-columns: 1fr auto;
+        row-gap: 4px;
+    }
+
+    h2 {
+        font-size: 16px;
+    }
+
+    .clickable-count {
+        font-size: 11px;
+    }
+
+    .canvas-frame {
+        padding: 2px;
+    }
+
+    .side-seat {
+        display: none;
+    }
+
+    .end-marker {
+        width: 30px;
+        height: 30px;
+    }
+
+    .option-number {
         font-size: 9px;
+        padding: 2px 5px;
+    }
+}
+
+@media (max-width: 420px) {
+    .board-header {
+        grid-template-columns: 1fr;
+    }
+
+    .clickable-count {
+        justify-self: start;
+    }
+
+    .end-marker {
+        width: 34px;
+        height: 34px;
     }
 }
