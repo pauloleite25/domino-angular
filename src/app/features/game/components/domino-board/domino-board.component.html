@@ -1,0 +1,95 @@
+<section class="board-panel">
+    <div class="board-header">
+        <h2>Mesa</h2>
+
+        <ng-container *ngIf="openingTile">
+            <ng-container *ngTemplateOutlet="seatTemplate; context: { player: getPlayer('C'), seat: 'north' }"></ng-container>
+        </ng-container>
+
+        <span class="clickable-count">Pontas clicaveis: <strong>{{ selectableCount }}</strong></span>
+    </div>
+
+    <div *ngIf="!openingTile" class="empty-board">
+        <p>A mesa ainda nao foi aberta.</p>
+        <button
+            type="button"
+            [disabled]="!canOpenWithSelectedTile"
+            [class.enabled]="canOpenWithSelectedTile"
+            (click)="playOpening.emit()">
+            Abrir mesa com peca selecionada
+        </button>
+    </div>
+
+    <div *ngIf="openingTile" class="board-area">
+        <div class="side-seat west-seat">
+            <ng-container *ngTemplateOutlet="seatTemplate; context: { player: getPlayer('B'), seat: 'west' }"></ng-container>
+        </div>
+
+        <div class="canvas-frame">
+            <div class="canvas-viewport">
+                <div class="canvas-shell" [ngStyle]="canvasShellStyle">
+                    <div class="canvas" [ngStyle]="canvasStyle">
+                        <div
+                            *ngFor="let entry of layoutTiles"
+                            class="tile-position"
+                            [ngStyle]="toBoardStyle(entry.x, entry.y)">
+                            <app-domino-tile-visual
+                                [left]="entry.tile.left"
+                                [right]="entry.tile.right"
+                                [orientation]="entry.orientation"
+                                [fixedLongSidePx]="tileLongSidePx"
+                                [disabled]="true">
+                            </app-domino-tile-visual>
+                        </div>
+
+                        <div
+                            *ngFor="let marker of endMarkers"
+                            class="end-marker-position"
+                            [ngStyle]="toBoardStyle(marker.x, marker.y)">
+                            <span *ngIf="marker.optionNumber !== null" class="option-number">{{ marker.optionNumber }}</span>
+                            <button
+                                type="button"
+                                class="end-marker"
+                                [class.blocked]="visualEndState(marker.side) === 'blocked'"
+                                [class.occupied]="visualEndState(marker.side) === 'occupied'"
+                                [class.available]="visualEndState(marker.side) === 'available'"
+                                [class.selected]="selectedEnd === marker.side"
+                                [disabled]="!isEndSelectable(marker.side)"
+                                [attr.aria-label]="'Ponta ' + marker.side"
+                                (click)="selectEnd.emit(marker.side)">
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="side-seat east-seat">
+            <ng-container *ngTemplateOutlet="seatTemplate; context: { player: getPlayer('D'), seat: 'east' }"></ng-container>
+        </div>
+    </div>
+</section>
+
+<ng-template #seatTemplate let-player="player" let-seat="seat">
+    <div *ngIf="player" class="seat" [class.side]="seat === 'east' || seat === 'west'">
+        <div class="seat-top">
+            <span class="player-id">{{ player.id }}</span>
+            <span
+                *ngIf="statusLabel(player)"
+                class="seat-status"
+                [class.current]="player.isCurrent"
+                [class.next]="nextPlayer === player.id">
+                {{ statusLabel(player) }}
+            </span>
+        </div>
+
+        <div class="seat-meta">
+            <span class="cpu">{{ player.isHuman ? "HUMANO" : "CPU" }}</span>
+            <span *ngIf="starter === player.id" class="started">INICIOU</span>
+        </div>
+
+        <div *ngIf="!player.isHuman" class="hidden-tiles">
+            <span *ngFor="let item of hiddenTiles(player)"></span>
+        </div>
+    </div>
+</ng-template>

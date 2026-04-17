@@ -1,0 +1,34 @@
+<section class="hand-panel">
+    <div class="hand-header">
+        <div class="title-row">
+            <h2>Sua mao (A)</h2>
+            <span *ngIf="statusLabel" class="status" [class.current]="isCurrentPlayerA" [class.next]="isNextPlayerA">
+                {{ statusLabel }}
+            </span>
+            <span *ngIf="didAStartRound" class="started">INICIOU</span>
+            <span class="human">HUMANO</span>
+        </div>
+
+        <div class="count">Jogaveis: <strong>{{ playableCount }}</strong> / {{ hand.length }}</div>
+    </div>
+
+    <div class="tiles">
+        <button
+            *ngFor="let tile of hand"
+            type="button"
+            class="tile-button"
+            [disabled]="!canInteract || !isPlayable(tile)"
+            [class.disabled]="!canInteract || !isPlayable(tile)"
+            (click)="selectTile.emit(tile)">
+            <app-domino-tile-visual
+                [left]="tile.left"
+                [right]="tile.right"
+                orientation="vertical"
+                [fixedLongSidePx]="52"
+                [selected]="selectedTileKey === tileKey(tile)"
+                [playable]="isPlayable(tile)"
+                [disabled]="!canInteract || !isPlayable(tile)">
+            </app-domino-tile-visual>
+        </button>
+    </div>
+</section>

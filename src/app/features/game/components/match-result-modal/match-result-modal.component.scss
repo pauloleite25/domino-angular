@@ -1,0 +1,51 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / 40%);
+    padding: 16px;
+}
+
+.modal {
+    width: min(100%, 390px);
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 24px;
+}
+
+h2 {
+    margin: 0;
+}
+
+.muted {
+    color: #52525b;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+button {
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 9px 12px;
+}
+
+.secondary {
+    border: 1px solid #d4d4d8;
+    background: #ffffff;
+    color: #27272a;
+}
+
+.primary {
+    border: 1px solid #2563eb;
+    background: #2563eb;
+    color: #ffffff;
+}

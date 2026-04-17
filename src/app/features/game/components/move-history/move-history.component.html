@@ -1,0 +1,17 @@
+<section class="history-panel">
+    <h2>Historico de jogadas</h2>
+
+    <p *ngIf="items.length === 0" class="empty">Sem jogadas ainda.</p>
+
+    <div *ngIf="items.length > 0" #list class="history-list">
+        <section *ngFor="let group of groupedByRound" class="round-group">
+            <h3>Rodada {{ group.roundNumber }}</h3>
+            <ol>
+                <li *ngFor="let item of group.items">
+                    <div>{{ item.description }}</div>
+                    <div *ngIf="item.points > 0" class="points">+{{ item.points }} pontos</div>
+                </li>
+            </ol>
+        </section>
+    </div>
+</section>

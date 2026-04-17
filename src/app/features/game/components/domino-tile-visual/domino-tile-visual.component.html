@@ -1,0 +1,52 @@
+<svg
+    role="img"
+    [attr.aria-label]="'Peca ' + left + '-' + right"
+    [attr.viewBox]="viewBox"
+    [ngStyle]="svgStyle"
+    [class.default-size]="fixedLongSidePx === undefined"
+    [class.disabled]="disabled">
+    <rect
+        x="1"
+        y="1"
+        [attr.width]="width - 2"
+        [attr.height]="height - 2"
+        rx="8"
+        ry="8"
+        [attr.fill]="fillColor"
+        [attr.stroke]="strokeColor"
+        stroke-width="2.2" />
+
+    <line
+        *ngIf="isHorizontal"
+        [attr.x1]="width / 2"
+        y1="5"
+        [attr.x2]="width / 2"
+        [attr.y2]="height - 5"
+        [attr.stroke]="dividerColor"
+        stroke-width="2" />
+
+    <line
+        *ngIf="!isHorizontal"
+        x1="5"
+        [attr.y1]="height / 2"
+        [attr.x2]="width - 5"
+        [attr.y2]="height / 2"
+        [attr.stroke]="dividerColor"
+        stroke-width="2" />
+
+    <circle
+        *ngFor="let pip of getPips(left, firstHalf)"
+        [attr.cx]="pip.x"
+        [attr.cy]="pip.y"
+        [attr.r]="pipRadius"
+        [attr.fill]="pipColor" />
+
+    <circle
+        *ngFor="let pip of getPips(right, secondHalf)"
+        [attr.cx]="pip.x"
+        [attr.cy]="pip.y"
+        [attr.r]="pipRadius"
+        [attr.fill]="pipColor" />
+
+    <circle *ngIf="playable && !selected" [attr.cx]="width - 6" cy="6" r="4" fill="#10b981" />
+</svg>

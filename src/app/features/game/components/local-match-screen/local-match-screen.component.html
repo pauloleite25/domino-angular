@@ -1,0 +1,170 @@
+<main *ngIf="!match.hasMatch || !match.roundState || !match.currentPlayer; else activeMatch" class="start-screen">
+    <header>
+        <h1>Domino Local</h1>
+        <p *ngIf="!match.isNetworkGuest">Interface pronta. Inicie uma nova partida para comecar.</p>
+        <p *ngIf="match.isNetworkGuest">Aguardando a partida da sala {{ match.networkRoomId }}.</p>
+    </header>
+
+    <section class="start-card">
+        <button *ngIf="!match.isNetworkGuest" type="button" class="primary" (click)="handleStartNewMatch()">Nova partida</button>
+        <p *ngIf="match.isNetworkGuest">Quando o host iniciar, sua tela sera sincronizada automaticamente.</p>
+    </section>
+</main>
+
+<ng-template #activeMatch>
+    <main class="game-shell">
+        <div class="game-grid">
+            <div class="main-column">
+                <header class="mobile-header">
+                    <div>
+                        <h1>Domino Local</h1>
+                        <p *ngIf="selectionHint">{{ selectionHint }}</p>
+                    </div>
+                    <button type="button" class="primary small" (click)="handleStartNewMatch()">Nova partida</button>
+                </header>
+
+                <div class="board-holder">
+                    <app-domino-board
+                        [board]="match.roundState!.board"
+                        [boardBranches]="match.boardBranches"
+                        [players]="match.players"
+                        [nextPlayer]="match.nextPlayer"
+                        [starter]="match.roundState!.starter"
+                        [openingOrientation]="openingOrientation"
+                        [selectedEnd]="selectedEnd"
+                        [selectableEnds]="selectableEnds"
+                        [moveOptionBySide]="moveOptionBySide"
+                        [canOpenWithSelectedTile]="canOpenWithSelectedTile && match.isHumanTurn"
+                        (selectEnd)="handleSelectEnd($event)"
+                        (playOpening)="handlePlayOpening()">
+                    </app-domino-board>
+                </div>
+
+                <div *ngIf="canHumanPass" class="pass-box">
+                    <span>Sem jogadas disponiveis.</span>
+                    <button type="button" (click)="handlePassTurn()">Passar</button>
+                </div>
+
+                <app-player-hand
+                    [hand]="match.humanHand"
+                    [selectedTileKey]="selectedTileKey"
+                    [playableTileKeys]="playableTileKeys"
+                    [canInteract]="match.isHumanTurn && !match.isMatchOver && !match.isRoundOver && playableMoves.length > 0"
+                    [isCurrentPlayerA]="isCurrentPlayerA"
+                    [isNextPlayerA]="isNextPlayerA"
+                    [didAStartRound]="didAStartRound"
+                    (selectTile)="handleSelectTile($event)">
+                </app-player-hand>
+
+                <details class="mobile-details">
+                    <summary>Ver placar, turno e historico</summary>
+                    <div class="details-content">
+                        <app-score-panel [score]="match.score"></app-score-panel>
+                        <app-turn-indicator
+                            [currentPlayer]="match.currentPlayer!"
+                            [roundStarter]="playerOrCurrent(match.roundStarter)"
+                            [nextPlayer]="playerOrCurrent(match.nextPlayer)"
+                            [isHumanTurn]="match.isHumanTurn"
+                            [isBotTurn]="match.isBotTurn"
+                            [botThinkingPlayer]="match.botThinkingPlayer"
+                            [botActionCountdown]="match.botCountdownLabel"
+                            [botDelaySeconds]="10"
+                            [turnSecondsLeft]="turnSecondsLeft"
+                            [turnDurationSeconds]="15">
+                        </app-turn-indicator>
+                        <div class="mobile-history">
+                            <app-move-history [items]="match.moveHistory"></app-move-history>
+                        </div>
+                        <ng-container *ngTemplateOutlet="roundEndCard"></ng-container>
+                    </div>
+                </details>
+            </div>
+
+            <aside class="side-column">
+                <header class="desktop-header">
+                    <div>
+                        <h1>Domino Local</h1>
+                        <p *ngIf="selectionHint">{{ selectionHint }}</p>
+                    </div>
+                    <button type="button" class="primary small" (click)="handleStartNewMatch()">Nova partida</button>
+                </header>
+
+                <app-score-panel [score]="match.score"></app-score-panel>
+                <app-turn-indicator
+                    [currentPlayer]="match.currentPlayer!"
+                    [roundStarter]="playerOrCurrent(match.roundStarter)"
+                    [nextPlayer]="playerOrCurrent(match.nextPlayer)"
+                    [isHumanTurn]="match.isHumanTurn"
+                    [isBotTurn]="match.isBotTurn"
+                    [botThinkingPlayer]="match.botThinkingPlayer"
+                    [botActionCountdown]="match.botCountdownLabel"
+                    [botDelaySeconds]="10"
+                    [turnSecondsLeft]="turnSecondsLeft"
+                    [turnDurationSeconds]="15">
+                </app-turn-indicator>
+
+                <div class="history-holder">
+                    <app-move-history [items]="match.moveHistory"></app-move-history>
+                </div>
+
+                <ng-container *ngTemplateOutlet="roundEndCard"></ng-container>
+            </aside>
+        </div>
+
+        <app-match-result-modal
+            [open]="match.isMatchOver && !hasDismissedMatchModal"
+            [winnerTeam]="match.winnerTeam"
+            [score]="match.score"
+            (viewFinal)="hasDismissedMatchModal = true"
+            (newMatch)="handleStartNewMatch()">
+        </app-match-result-modal>
+
+        <div *ngIf="match.galoPopup" class="galo-overlay" role="dialog" aria-modal="true" aria-labelledby="galo-title">
+            <div class="galo-modal">
+                <p class="eyebrow">Galo</p>
+                <h2 id="galo-title">Jogador {{ match.galoPopup.playerId }} fez galo</h2>
+                <p>
+                    {{ match.galoPopup.team }} ganhou +{{ match.galoPopup.points }} pontos.
+                </p>
+                <button type="button" class="primary small" (click)="match.dismissGaloPopup()">Fechar</button>
+            </div>
+        </div>
+    </main>
+</ng-template>
+
+<ng-template #roundEndCard>
+    <div *ngIf="match.isRoundOver && match.lastRoundResult && match.roundEndSummary" class="round-end-card">
+        <strong>Fim da rodada:</strong>
+        encerrada por <strong>{{ match.lastRoundResult.reason }}</strong>.
+
+        <ng-container *ngIf="match.lastRoundResult.winnerTeam; else noRoundWinner">
+            Vencedora: <strong>{{ match.lastRoundResult.winnerTeam }}</strong>
+            (+{{ match.lastRoundResult.points }}).
+        </ng-container>
+        <ng-template #noRoundWinner>Sem vencedora.</ng-template>
+
+        <ng-container *ngIf="match.roundEndSummary.winnerTeam">
+            <div class="round-detail">
+                Calculo exposto: {{ match.roundEndSummary.roundedFrom }} -&gt; multiplo de 5 para baixo =
+                <strong>{{ match.roundEndSummary.roundedTo }}</strong>
+                (somado para {{ match.roundEndSummary.winnerTeam }}).
+            </div>
+
+            <div class="round-detail">
+                <div *ngFor="let loser of match.roundEndSummary.loserHands">
+                    Jogador <strong>{{ loser.playerId }}</strong>:
+                    {{ formatTilesForSummary(loser.tiles) }} = {{ loser.total }}.
+                </div>
+            </div>
+
+            <div class="round-detail">
+                Totais no fim da rodada: AC {{ match.roundEndSummary.totals.AC }} x
+                {{ match.roundEndSummary.totals.BD }} BD.
+            </div>
+        </ng-container>
+
+        <button *ngIf="match.canStartNextRound" type="button" class="primary small next-round" (click)="match.startNextRound()">
+            Iniciar proxima rodada
+        </button>
+    </div>
+</ng-template>

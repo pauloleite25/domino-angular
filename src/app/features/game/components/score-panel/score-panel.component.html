@@ -1,0 +1,18 @@
+<section class="panel">
+    <div class="panel-header">
+        <h2>Placar</h2>
+        <span class="badge">{{ leader }}</span>
+    </div>
+
+    <div class="score-grid">
+        <div class="score-card" [class.leading]="score.AC >= score.BD">
+            <div class="label">Dupla A/C</div>
+            <div class="value">{{ score.AC }}</div>
+        </div>
+
+        <div class="score-card" [class.leading]="score.BD >= score.AC">
+            <div class="label">Dupla B/D</div>
+            <div class="value">{{ score.BD }}</div>
+        </div>
+    </div>
+</section>

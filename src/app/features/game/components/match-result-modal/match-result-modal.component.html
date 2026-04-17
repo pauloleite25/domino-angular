@@ -1,0 +1,17 @@
+<div *ngIf="open" class="overlay">
+    <div class="modal">
+        <h2>Partida encerrada</h2>
+        <p class="muted">Placar final: A/C {{ score.AC }} x {{ score.BD }} B/D</p>
+        <p>
+            <ng-container *ngIf="winnerTeam; else noWinner">
+                Vencedora: <strong>{{ winnerTeam }}</strong>
+            </ng-container>
+            <ng-template #noWinner>Sem vencedora definida.</ng-template>
+        </p>
+
+        <div class="actions">
+            <button type="button" class="secondary" (click)="viewFinal.emit()">Visualizar final da partida</button>
+            <button type="button" class="primary" (click)="newMatch.emit()">Iniciar nova partida</button>
+        </div>
+    </div>
+</div>

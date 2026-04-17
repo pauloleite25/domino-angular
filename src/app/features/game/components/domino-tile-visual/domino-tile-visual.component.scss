@@ -1,0 +1,17 @@
+:host {
+    display: inline-flex;
+}
+
+svg {
+    display: block;
+    opacity: 1;
+}
+
+.default-size {
+    height: 64px;
+    width: auto;
+}
+
+.disabled {
+    opacity: 0.7;
+}

@@ -1,0 +1,85 @@
+.hand-panel {
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 12px;
+}
+
+.hand-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+h2 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.status,
+.started,
+.human {
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 6px;
+}
+
+.status.current {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+.status.next {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.started {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.human {
+    background: #f4f4f5;
+    color: #3f3f46;
+}
+
+.count {
+    color: #52525b;
+    font-size: 12px;
+}
+
+.tiles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.tile-button {
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 120ms ease;
+}
+
+.tile-button:not(.disabled):hover {
+    transform: translateY(-2px);
+}
+
+.tile-button.disabled {
+    cursor: not-allowed;
+}

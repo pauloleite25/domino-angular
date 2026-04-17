@@ -1,0 +1,56 @@
+.panel {
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 12px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.badge {
+    border-radius: 999px;
+    background: #f4f4f5;
+    color: #3f3f46;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+.score-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.score-card {
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.score-card.leading {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.label {
+    color: #71717a;
+    font-size: 13px;
+}
+
+.value {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-top: 4px;
+}

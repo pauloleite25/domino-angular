@@ -1,0 +1,22 @@
+<section class="turn-panel" [class.human]="isHumanTurn" [class.bot]="!isHumanTurn">
+    <h2>Turno</h2>
+    <p class="line">Jogador atual: <strong>{{ currentPlayer }}</strong></p>
+    <p class="line muted">{{ statusText }}</p>
+    <p class="meta">
+        Iniciou a rodada: <strong>{{ roundStarter }}</strong> - Proximo:
+        <strong>{{ nextPlayer }}</strong>
+    </p>
+
+    <div class="timer">
+        <div class="timer-label">
+            <span>{{ isBotTurn ? "Acao automatica do bot" : "Timer da jogada" }}</span>
+            <span>{{ secondsLabel }}s</span>
+        </div>
+        <div class="track">
+            <div
+                class="bar"
+                [class.warning]="isBotTurn || turnSecondsLeft <= 5"
+                [style.width.%]="progress"></div>
+        </div>
+    </div>
+</section>

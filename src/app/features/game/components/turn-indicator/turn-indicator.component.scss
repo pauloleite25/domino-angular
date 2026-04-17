@@ -1,0 +1,60 @@
+.turn-panel {
+    border: 1px solid #fcd34d;
+    border-radius: 8px;
+    background: #fffbeb;
+    padding: 12px;
+}
+
+.turn-panel.human {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+h2 {
+    margin: 0 0 8px;
+    font-size: 18px;
+}
+
+.line,
+.meta {
+    margin: 4px 0;
+    font-size: 14px;
+}
+
+.muted,
+.meta {
+    color: #52525b;
+}
+
+.meta {
+    font-size: 12px;
+}
+
+.timer {
+    margin-top: 12px;
+}
+
+.timer-label {
+    display: flex;
+    justify-content: space-between;
+    color: #52525b;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e4e4e7;
+}
+
+.bar {
+    height: 100%;
+    background: #2563eb;
+    transition: width 160ms linear;
+}
+
+.bar.warning {
+    background: #f59e0b;
+}
