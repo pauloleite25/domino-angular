@@ -28,6 +28,7 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     selectedTileKey: string | null = null;
     selectedEnd: BoardSide | null = null;
     draggingTileKey: string | null = null;
+    startPanel: "menu" | "create" | "join" = "menu";
     createRoomName = "";
     createRoomPassword = "";
     createPlayerName = "";

@@ -1,24 +1,59 @@
 <main *ngIf="!match.hasMatch || !match.roundState || !match.currentPlayer; else activeMatch" class="start-screen">
-    <header>
-        <h1>Domino Local</h1>
-        <p *ngIf="!match.isNetworkGuest">Interface pronta. Inicie uma nova partida para comecar.</p>
+    <header class="start-header">
+        <div class="title-sign">
+            <span class="sign-domino left" aria-hidden="true"></span>
+            <div>
+                <p class="start-kicker">Mesa online</p>
+                <h1>Domino</h1>
+            </div>
+            <span class="sign-domino right" aria-hidden="true"></span>
+        </div>
+        <p *ngIf="!match.isNetworkGuest">Crie uma sala, chame seus amigos ou comece uma mesa com CPUs.</p>
         <p *ngIf="match.isNetworkGuest">Aguardando a partida da sala {{ match.networkRoomId }}.</p>
     </header>
 
     <section class="start-card">
-        <button
-            *ngIf="!match.isNetworkGuest"
-            type="button"
-            class="primary"
-            [disabled]="match.networkRoomId !== null && !canStartNetworkRoomMatch"
-            (click)="handleStartNewMatch()">
-            Nova partida
-        </button>
-        <p *ngIf="match.isNetworkGuest">Quando o host iniciar, sua tela sera sincronizada automaticamente.</p>
+        <div class="start-overview">
+            <div class="table-preview" aria-hidden="true">
+                <img
+                    class="menu-players-image"
+                    src="assets/domino-players-menu.png"
+                    alt="Pessoas jogando domino em uma mesa" />
+            </div>
 
-        <p *ngIf="match.networkRoomId && !match.isNetworkGuest" class="room-note">
-            Sala {{ match.networkRoomId }} criada. Aguarde seu amigo entrar para iniciar.
-        </p>
+            <div class="start-actions">
+                <p class="action-label">Partida</p>
+                <h2>Escolha o jogo</h2>
+                <div *ngIf="!match.isNetworkGuest && !match.networkRoomId" class="menu-actions">
+                    <button type="button" class="menu-button cpu" (click)="handleStartNewMatch()">
+                        <span>VS CPU</span>
+                        <small>Entrar direto contra bots</small>
+                    </button>
+                    <button type="button" class="menu-button create" (click)="startPanel = 'create'">
+                        <span>Criar sala</span>
+                        <small>Monte uma mesa privada</small>
+                    </button>
+                    <button type="button" class="menu-button join" (click)="startPanel = 'join'">
+                        <span>Entrar na sala</span>
+                        <small>Use nome, senha e posicao</small>
+                    </button>
+                </div>
+                <button
+                    *ngIf="!match.isNetworkGuest && match.networkRoomId"
+                    type="button"
+                    class="primary start-primary"
+                    [disabled]="!canStartNetworkRoomMatch"
+                    (click)="handleStartNewMatch()">
+                    Iniciar sala
+                </button>
+                <p *ngIf="match.isNetworkGuest" class="room-note">
+                    Quando o host iniciar, sua tela sera sincronizada automaticamente.
+                </p>
+                <p *ngIf="match.networkRoomId && !match.isNetworkGuest" class="room-note">
+                    Sala <strong>{{ match.networkRoomId }}</strong> criada. Aguarde seus amigos entrarem para iniciar.
+                </p>
+            </div>
+        </div>
 
         <div *ngIf="match.networkRoomId && !match.isNetworkGuest" class="lobby-status">
             <span
@@ -30,9 +65,12 @@
             </span>
         </div>
 
-        <div *ngIf="!match.networkRoomId" class="room-grid">
-            <form class="room-form" (ngSubmit)="handleCreateRoom()">
-                <h2>Criar sala</h2>
+        <div *ngIf="!match.networkRoomId && startPanel !== 'menu'" class="room-grid single">
+            <form *ngIf="startPanel === 'create'" class="room-form" (ngSubmit)="handleCreateRoom()">
+                <div class="form-heading">
+                    <span>Criar</span>
+                    <h2>Nova sala</h2>
+                </div>
                 <label>
                     Seu nome
                     <input
@@ -62,10 +100,16 @@
                         [disabled]="isRoomRequestPending" />
                 </label>
                 <button type="submit" class="primary small" [disabled]="isRoomRequestPending">Criar sala</button>
+                <button type="button" class="secondary small" [disabled]="isRoomRequestPending" (click)="startPanel = 'menu'">
+                    Voltar
+                </button>
             </form>
 
-            <form class="room-form" (ngSubmit)="handleJoinRoom()">
-                <h2>Entrar na sala</h2>
+            <form *ngIf="startPanel === 'join'" class="room-form" (ngSubmit)="handleJoinRoom()">
+                <div class="form-heading">
+                    <span>Entrar</span>
+                    <h2>Sala existente</h2>
+                </div>
                 <label>
                     Seu nome
                     <input
@@ -115,6 +159,9 @@
                     </select>
                 </label>
                 <button type="submit" class="primary small" [disabled]="isRoomRequestPending">Entrar</button>
+                <button type="button" class="secondary small" [disabled]="isRoomRequestPending" (click)="startPanel = 'menu'">
+                    Voltar
+                </button>
             </form>
         </div>
 
