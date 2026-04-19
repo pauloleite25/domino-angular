@@ -109,13 +109,15 @@ function moveByDistance(
   };
 }
 
-function shouldStayOnPrimaryAxis(
-  placedOnPrimary: readonly DominoTile[],
-  currentTile: DominoTile,
-): boolean {
-  void currentTile;
-  // Regra de layout: no maximo 3 pecas antes de mudar de direcao.
-  return placedOnPrimary.length < 3;
+function maxTilesForDirection(direction: BoardSide): number {
+  return direction === "east" || direction === "west" ? 6 : 2;
+}
+
+function nextFlowDirection(
+  currentDirection: BoardSide,
+  flow: { readonly primary: BoardSide; readonly secondary: BoardSide },
+): BoardSide {
+  return currentDirection === flow.primary ? flow.secondary : flow.primary;
 }
 
 function getTurningTilePosition(
@@ -212,34 +214,21 @@ export function getBoardLayout(
     let previousPosition: GridPoint = { x: 0, y: 0 };
     let previousOrientation: LayoutOrientation = openingOrientation;
     let currentDirection: BoardSide = flow.primary;
-    let hasTurned = false;
-    const placedOnPrimary: DominoTile[] = [];
+    let currentSegmentCount = 0;
 
     for (let index = 0; index < branchTiles.length; index += 1) {
       const sourceTile = branchTiles[index];
       let turningThisTile = false;
+      let previousDirection = currentDirection;
 
-      if (!hasTurned) {
-        if (!shouldStayOnPrimaryAxis(placedOnPrimary, sourceTile)) {
-          if (isDouble(sourceTile)) {
-            currentDirection = flow.primary;
-            hasTurned = true;
-          } else {
-            const previousPrimaryTile =
-              placedOnPrimary.length > 0
-                ? placedOnPrimary[placedOnPrimary.length - 1]
-                : null;
-            hasTurned = true;
-            currentDirection = flow.secondary;
-            if (previousPrimaryTile === null || !isDouble(previousPrimaryTile)) {
-              turningThisTile = true;
-            }
-          }
+      if (currentSegmentCount >= maxTilesForDirection(currentDirection)) {
+        if (isDouble(sourceTile)) {
+          currentDirection = previousDirection;
         } else {
-          currentDirection = flow.primary;
+          currentDirection = nextFlowDirection(currentDirection, flow);
+          currentSegmentCount = 0;
+          turningThisTile = true;
         }
-      } else {
-        currentDirection = flow.secondary;
       }
 
       let displayTile = getDisplayTileForDirection(currentDirection, sourceTile);
@@ -249,8 +238,8 @@ export function getBoardLayout(
             previousPosition,
             previousOrientation,
             currentOrientation,
-            flow.primary,
-            flow.secondary,
+            previousDirection,
+            currentDirection,
           )
         : getStraightTilePosition(
             previousPosition,
@@ -268,10 +257,7 @@ export function getBoardLayout(
         branch: branchSide,
       });
 
-      if (!hasTurned && currentDirection === flow.primary) {
-        placedOnPrimary.push(sourceTile);
-      }
-
+      currentSegmentCount += 1;
       previousPosition = currentPosition;
       previousOrientation = currentOrientation;
     }

@@ -14,7 +14,10 @@
 
     <div *ngIf="openingTile" class="board-area">
         <div class="canvas-frame">
-            <div class="canvas-viewport">
+            <div
+                class="canvas-viewport"
+                (dragover)="handleDragOver($event)"
+                (drop)="handleBoardDrop($event)">
                 <div class="canvas-shell" [ngStyle]="canvasShellStyle">
                     <div class="canvas" [ngStyle]="canvasStyle">
                         <div

@@ -18,6 +18,7 @@
             type="button"
             class="tile-button"
             [class.playable]="isPlayable(tile)"
+            [class.dragging]="draggingTileKey === tileKey(tile)"
             [disabled]="!canInteract || !isPlayable(tile)"
             [class.disabled]="!canInteract || !isPlayable(tile)"
             [attr.draggable]="canInteract && isPlayable(tile) ? true : null"

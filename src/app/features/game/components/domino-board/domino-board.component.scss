@@ -4,21 +4,15 @@
     height: 100%;
     flex-direction: column;
     gap: 8px;
-    border: 1px solid #4b2b18;
+    border: 1px solid rgb(255 209 102 / 18%);
     border-radius: 8px;
     background:
-        linear-gradient(135deg, rgb(64 38 24 / 96%) 0%, rgb(94 58 38 / 96%) 45%, rgb(56 33 21 / 96%) 100%),
-        repeating-linear-gradient(
-            90deg,
-            rgb(255 255 255 / 3%) 0,
-            rgb(255 255 255 / 3%) 2px,
-            transparent 2px,
-            transparent 10px
-        );
+        radial-gradient(circle at 50% 50%, rgb(255 209 102 / 10%) 0%, transparent 62%),
+        linear-gradient(135deg, #211713 0%, #0f1715 100%);
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 12%),
-        0 10px 24px rgb(0 0 0 / 32%);
-    padding: 8px;
+        inset 0 1px 0 rgb(255 255 255 / 16%),
+        0 16px 36px rgb(0 0 0 / 38%);
+    padding: 6px;
 }
 
 h2 {
@@ -36,49 +30,77 @@ h2 {
 }
 
 .empty-board {
-    border: 1px dashed #fbbf24;
+    display: grid;
+    min-height: 100%;
+    place-items: center;
+    border: 1px dashed rgb(255 209 102 / 62%);
     border-radius: 8px;
-    background: rgb(255 255 255 / 8%);
-    color: #fef3c7;
+    background:
+        repeating-linear-gradient(
+            45deg,
+            rgb(255 255 255 / 4%) 0,
+            rgb(255 255 255 / 4%) 2px,
+            transparent 2px,
+            transparent 13px
+        ),
+        linear-gradient(135deg, #17684f 0%, #0f4639 100%);
+    color: #fff2c7;
     padding: 16px;
+    text-align: center;
 }
 
 .empty-board button {
-    border: 1px solid #f59e0b;
+    border: 1px solid #ffd166;
     border-radius: 8px;
-    background: rgb(245 158 11 / 16%);
-    color: #fef3c7;
+    background: rgb(255 209 102 / 16%);
+    color: #fff2c7;
     font-weight: 600;
     padding: 10px 12px;
 }
 
 .empty-board button.enabled {
     cursor: pointer;
-    background: #f59e0b;
-    color: #1f2937;
+    background: #ffd166;
+    color: #111816;
 }
 
 .board-area {
     position: relative;
-    display: flex;
+    display: grid;
     min-height: 0;
     flex: 1;
-    align-items: stretch;
+    container-type: size;
+    place-items: center;
 }
-
+.board-bg {
+  position: absolute;
+  inset: 0;
+  background: url("/assets/domino-game-table.png") center/100% 100% no-repeat;
+  transform: scaleX(1.1);
+  transform-origin: center;
+}
 .canvas-frame {
     display: flex;
     min-height: 0;
     min-width: 0;
-    flex: 1;
-    border: 2px solid #5b331d;
+    width: min(100cqw, calc(100cqh * 2.7325));
+    max-width: 100%;
+    height: min(100cqh, calc(100cqw / 2.7325));
+    max-height: 100%;
+    aspect-ratio: 1369 / 501;
+    flex: none;
+    border: 0;
     border-radius: 8px;
     background:
-        linear-gradient(160deg, #6b3f26 0%, #4a2b1a 100%);
+        linear-gradient(rgb(0 0 0 / 6%), rgb(0 0 0 / 6%)),
+        url("/assets/domino-game-table.png") center / 100% auto no-repeat;
     box-shadow:
-        inset 0 1px 0 rgb(255 255 255 / 9%),
-        inset 0 -2px 10px rgb(0 0 0 / 22%);
-    padding: 4px;
+        inset 0 0 0 1px rgb(255 209 102 / 16%),
+        0 18px 38px rgb(0 0 0 / 34%);
+    padding:
+        clamp(34px, 5%, 58px)
+        clamp(42px, 7%, 78px)
+        clamp(44px, 7.35%, 76px);
 }
 
 .canvas-viewport {
@@ -89,19 +111,18 @@ h2 {
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    border-radius: 6px;
-    border: 1px solid rgb(0 0 0 / 28%);
+    border: 0;
+    border-radius: 5px;
     background:
-        radial-gradient(circle at 20% 18%, rgb(60 120 92 / 45%) 0%, transparent 38%),
-        radial-gradient(circle at 84% 70%, rgb(36 94 67 / 38%) 0%, transparent 36%),
         repeating-linear-gradient(
             45deg,
-            rgb(255 255 255 / 3%) 0,
-            rgb(255 255 255 / 3%) 2px,
-            transparent 2px,
-            transparent 10px
-        ),
-        linear-gradient(135deg, #22523e 0%, #1a4734 48%, #173c2f 100%);
+            rgb(255 255 255 / 2%) 0,
+            rgb(255 255 255 / 2%) 1px,
+            transparent 1px,
+            transparent 9px
+        );
+    box-shadow:
+        inset 0 0 42px rgb(0 0 0 / 18%);
 }
 
 .canvas-shell {
@@ -123,6 +144,18 @@ h2 {
     position: relative;
     display: inline-flex;
     touch-action: manipulation;
+}
+
+.tile-hitbox.target {
+    filter:
+        drop-shadow(0 0 0.8px #ffd166)
+        drop-shadow(0 0 7px rgb(255 209 102 / 54%));
+}
+
+.tile-hitbox.selected {
+    filter:
+        drop-shadow(0 0 1px #ffffff)
+        drop-shadow(0 0 9px rgb(19 173 125 / 70%));
 }
 
 .tile-end-hit {
@@ -172,11 +205,15 @@ h2 {
     position: absolute;
     max-width: min(42vw, 220px);
     overflow: hidden;
-    border: 1px solid rgb(255 255 255 / 18%);
+    border: 1px solid rgb(255 209 102 / 28%);
     border-radius: 6px;
-    background: rgb(244 244 245 / 92%);
-    box-shadow: 0 1px 3px rgb(0 0 0 / 22%);
-    color: #3f3f46;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 12%) 0%, transparent 72%),
+        rgb(15 23 20 / 88%);
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 12%),
+        0 4px 12px rgb(0 0 0 / 26%);
+    color: #fff2c7;
     font-size: 11px;
     font-weight: 800;
     line-height: 1;
@@ -187,15 +224,22 @@ h2 {
 }
 
 .table-player.current {
-    border-color: rgb(187 247 208 / 70%);
-    background: #166534;
+    border-color: #ffd166;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 18%) 0%, transparent 60%),
+        #13ad7d;
     color: #ffffff;
+    box-shadow:
+        0 0 0 2px rgb(255 209 102 / 24%),
+        0 7px 18px rgb(0 0 0 / 28%);
 }
 
 .table-player.next {
-    border-color: rgb(254 243 199 / 85%);
-    background: #fef3c7;
-    color: #92400e;
+    border-color: rgb(255 255 255 / 48%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 22%) 0%, transparent 62%),
+        #e3324d;
+    color: #ffffff;
 }
 
 .table-player.north {
@@ -231,11 +275,14 @@ h2 {
 
 @media (max-width: 640px), (max-height: 520px) {
     .board-panel {
-        padding: 4px;
+        padding: 3px;
     }
 
     .canvas-frame {
-        padding: 1px;
+        padding:
+            clamp(18px, 5%, 32px)
+            clamp(24px, 7%, 44px)
+            clamp(23px, 7.35%, 42px);
     }
 
     .canvas-viewport {

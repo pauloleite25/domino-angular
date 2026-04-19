@@ -22,6 +22,8 @@ export class PlayerHandComponent {
     @Output() dragTileEnd = new EventEmitter<void>();
     private readonly mobileTileLongSidePx = 48;
     private readonly desktopTileLongSidePx = 128;
+    draggingTileKey: string | null = null;
+    private dragPreviewElement: HTMLElement | null = null;
 
     get playableCount(): number {
         return this.hand.filter((tile) => this.isPlayable(tile)).length;
@@ -60,12 +62,46 @@ export class PlayerHandComponent {
         }
 
         const key = tileKey(tile);
+        this.draggingTileKey = key;
         event.dataTransfer.effectAllowed = "move";
         event.dataTransfer.setData("text/plain", key);
+        this.setDragPreview(event);
         this.dragTileStart.emit(key);
     }
 
     handleDragEnd(): void {
+        this.draggingTileKey = null;
+        this.removeDragPreview();
         this.dragTileEnd.emit();
+    }
+
+    private setDragPreview(event: DragEvent): void {
+        if (!event.dataTransfer || !(event.currentTarget instanceof HTMLElement)) {
+            return;
+        }
+
+        this.removeDragPreview();
+
+        const source = event.currentTarget;
+        const preview = source.cloneNode(true) as HTMLElement;
+        const rect = source.getBoundingClientRect();
+
+        preview.classList.add("drag-preview");
+        preview.style.position = "fixed";
+        preview.style.left = "-1000px";
+        preview.style.top = "-1000px";
+        preview.style.width = `${rect.width}px`;
+        preview.style.height = `${rect.height}px`;
+        preview.style.pointerEvents = "none";
+        preview.style.zIndex = "9999";
+
+        document.body.appendChild(preview);
+        this.dragPreviewElement = preview;
+        event.dataTransfer.setDragImage(preview, rect.width / 2, rect.height / 2);
+    }
+
+    private removeDragPreview(): void {
+        this.dragPreviewElement?.remove();
+        this.dragPreviewElement = null;
     }
 }

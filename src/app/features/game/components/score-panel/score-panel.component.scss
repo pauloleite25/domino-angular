@@ -1,7 +1,13 @@
 .panel {
-    border: 1px solid #e4e4e7;
+    border: 1px solid rgb(255 209 102 / 26%);
     border-radius: 8px;
-    background: #ffffff;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 10%) 0%, transparent 46%),
+        #17201c;
+    color: #f7fbf8;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 12%),
+        0 10px 22px rgb(0 0 0 / 22%);
     padding: 12px;
 }
 
@@ -16,12 +22,14 @@
 h2 {
     margin: 0;
     font-size: 18px;
+    color: #fff2c7;
 }
 
 .badge {
-    border-radius: 999px;
-    background: #f4f4f5;
-    color: #3f3f46;
+    border: 1px solid rgb(255 209 102 / 38%);
+    border-radius: 8px;
+    background: rgb(255 209 102 / 14%);
+    color: #ffd166;
     font-size: 12px;
     padding: 4px 8px;
 }
@@ -33,22 +41,26 @@ h2 {
 }
 
 .score-card {
-    border: 1px solid #e4e4e7;
+    border: 1px solid rgb(255 255 255 / 12%);
     border-radius: 8px;
+    background: rgb(255 255 255 / 7%);
     padding: 12px;
 }
 
 .score-card.leading {
-    border-color: #93c5fd;
-    background: #eff6ff;
+    border-color: rgb(255 209 102 / 72%);
+    background:
+        linear-gradient(180deg, rgb(255 209 102 / 18%) 0%, transparent 100%),
+        rgb(19 173 125 / 14%);
 }
 
 .label {
-    color: #71717a;
+    color: #d8ebe4;
     font-size: 13px;
 }
 
 .value {
+    color: #ffffff;
     font-size: 26px;
     font-weight: 700;
     line-height: 1.1;

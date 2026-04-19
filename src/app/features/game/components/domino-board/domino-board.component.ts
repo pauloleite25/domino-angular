@@ -3,15 +3,17 @@ import { getPlayableEnds } from "../../../../core/domino";
 import type { BoardSide, BoardState, DominoTile, PlayerId, TeamId } from "../../../../core/domino";
 import { getBoardLayout, LayoutTile } from "../../model/board-layout";
 
-const TILE_LONG_SIDE_PX_DESKTOP = 82;
-const TILE_LONG_SIDE_PX_MOBILE = 62;
-const BOARD_EDGE_PADDING_PX_DESKTOP = 80;
-const BOARD_EDGE_PADDING_PX_MOBILE = 44;
+const TILE_LONG_SIDE_PX_DESKTOP = 74;
+const TILE_LONG_SIDE_PX_MOBILE = 56;
+const BOARD_EDGE_PADDING_PX_DESKTOP = 92;
+const BOARD_EDGE_PADDING_PX_MOBILE = 51;
 const BOARD_LAYOUT_MAX_X = 6;
 const BOARD_LAYOUT_MAX_Y = 3;
 const MARKER_TIP_OFFSET_UNITS = 0.45;
 const MIN_BOARD_SCALE_DESKTOP = 0.01;
 const MIN_BOARD_SCALE_MOBILE = 0.01;
+const NEAR_DROP_TOLERANCE_DESKTOP = 1.25;
+const NEAR_DROP_TOLERANCE_MOBILE = 1.65;
 
 export type BoardPlayer = {
     readonly id: PlayerId;
@@ -277,8 +279,59 @@ export class DominoBoardComponent {
         this.dropOnEnds.emit(sides);
     }
 
+    handleBoardDrop(event: DragEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const side = this.findNearbyDropSide(event);
+        if (!side) {
+            return;
+        }
+
+        this.dropOnEnds.emit([side]);
+    }
+
     handleOpeningDrop(event: DragEvent): void {
         event.preventDefault();
         this.dropOnOpening.emit();
+    }
+
+    private findNearbyDropSide(event: DragEvent): BoardSide | null {
+        if (this.selectableEnds.length === 0 || !(event.currentTarget instanceof HTMLElement)) {
+            return null;
+        }
+
+        const canvasShell = event.currentTarget.querySelector(".canvas-shell");
+        if (!(canvasShell instanceof HTMLElement)) {
+            return null;
+        }
+
+        const shellRect = canvasShell.getBoundingClientRect();
+        const scale = this.boardScale;
+        if (scale <= 0) {
+            return null;
+        }
+
+        const dropX = (event.clientX - shellRect.left) / scale;
+        const dropY = (event.clientY - shellRect.top) / scale;
+        const tolerance =
+            this.tileLongSidePx * (this.isMobileViewport ? NEAR_DROP_TOLERANCE_MOBILE : NEAR_DROP_TOLERANCE_DESKTOP);
+
+        let nearestSide: BoardSide | null = null;
+        let nearestDistance = Number.POSITIVE_INFINITY;
+
+        for (const side of this.selectableEnds) {
+            const point = this.markerPositionsBySide[side];
+            const targetX = this.boardCanvasWidth / 2 + point.x * this.tileLongSidePx;
+            const targetY = this.boardCanvasHeight / 2 + point.y * this.tileLongSidePx;
+            const distance = Math.hypot(dropX - targetX, dropY - targetY);
+
+            if (distance < nearestDistance) {
+                nearestDistance = distance;
+                nearestSide = side;
+            }
+        }
+
+        return nearestSide && nearestDistance <= tolerance ? nearestSide : null;
     }
 }

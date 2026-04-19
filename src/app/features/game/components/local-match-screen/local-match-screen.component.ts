@@ -42,6 +42,7 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     isRoomRequestPending = false;
     turnSecondsLeft = 15;
     hasDismissedMatchModal = false;
+    isHistoryOpen = false;
 
     private timerId: number | null = null;
     private lobbyPollId: number | null = null;
@@ -128,12 +129,7 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     }
 
     get openingOrientation(): "horizontal" | "vertical" {
-        const starter = this.match.roundStarter;
-        if (!starter) {
-            return "vertical";
-        }
-
-        return starter === "A" || starter === "C" ? "horizontal" : "vertical";
+        return "vertical";
     }
 
     get selectionHint(): string {
@@ -218,6 +214,10 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
         }
 
         return tiles.map((tile) => `[${tile.left}|${tile.right}]`).join(" ");
+    }
+
+    openMoveHistory(): void {
+        this.isHistoryOpen = true;
     }
 
     handleSelectTile(tile: DominoTile): void {

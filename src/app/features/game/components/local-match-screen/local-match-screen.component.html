@@ -220,9 +220,17 @@
                         <app-score-panel [score]="match.score"></app-score-panel>
                     </div>
 
-                    <button type="button" class="mobile-new-match" (click)="handleStartNewMatch()">
-                        Nova
-                    </button>
+                    <div class="mobile-round-actions">
+                        <button *ngIf="match.canStartNextRound" type="button" class="primary small" (click)="match.startNextRound()">
+                            Proxima
+                        </button>
+                        <button type="button" class="secondary small history-action" (click)="openMoveHistory()">
+                            Historico
+                        </button>
+                        <button *ngIf="!match.canStartNextRound" type="button" class="mobile-new-match" (click)="handleStartNewMatch()">
+                            Nova
+                        </button>
+                    </div>
                 </div>
 
                 <details class="mobile-details">
@@ -252,7 +260,17 @@
             </div>
 
             <aside class="side-column">
-                <app-score-panel [score]="match.score"></app-score-panel>
+                <div class="score-with-actions">
+                    <app-score-panel [score]="match.score"></app-score-panel>
+                    <div class="round-actions">
+                        <button *ngIf="match.canStartNextRound" type="button" class="primary small" (click)="match.startNextRound()">
+                            Proxima rodada
+                        </button>
+                        <button type="button" class="secondary small history-action" (click)="openMoveHistory()">
+                            Historico
+                        </button>
+                    </div>
+                </div>
                 <app-turn-indicator
                     [currentPlayer]="match.currentPlayer!"
                     [currentPlayerName]="playerLabel(match.currentPlayer)"
@@ -300,6 +318,18 @@
             </div>
         </div>
 
+        <div *ngIf="isHistoryOpen" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="history-title">
+            <div class="history-modal">
+                <div class="history-modal-header">
+                    <h2 id="history-title">Historico de jogadas</h2>
+                    <button type="button" class="secondary small" (click)="isHistoryOpen = false">Fechar</button>
+                </div>
+                <div class="history-modal-body">
+                    <app-move-history [items]="match.moveHistory"></app-move-history>
+                </div>
+            </div>
+        </div>
+
         <div class="rotate-phone-overlay" aria-hidden="true">
             <div>Gire o celular</div>
         </div>
@@ -336,9 +366,5 @@
                 {{ match.roundEndSummary.totals.BD }} BD.
             </div>
         </ng-container>
-
-        <button *ngIf="match.canStartNextRound" type="button" class="primary small next-round" (click)="match.startNextRound()">
-            Iniciar proxima rodada
-        </button>
     </div>
 </ng-template>

@@ -1,8 +1,12 @@
 .hand-panel {
-    border: 1px solid #6b3f27;
+    border: 1px solid rgb(255 209 102 / 30%);
     border-radius: 8px;
-    background: rgb(255 250 240 / 95%);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 10%) 0%, transparent 40%),
+        #15221d;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 14%),
+        0 10px 22px rgb(0 0 0 / 24%);
     padding: 12px;
 }
 
@@ -24,7 +28,7 @@
 h2 {
     margin: 0;
     font-size: 16px;
-    color: #422615;
+    color: #fff2c7;
 }
 
 .status,
@@ -37,27 +41,27 @@ h2 {
 }
 
 .status.current {
-    background: #2563eb;
+    background: #13ad7d;
     color: #ffffff;
 }
 
 .status.next {
-    background: #fef3c7;
-    color: #92400e;
+    background: #e3324d;
+    color: #ffffff;
 }
 
 .started {
-    background: #d1fae5;
-    color: #065f46;
+    background: #ffd166;
+    color: #111816;
 }
 
 .human {
-    background: #f4f4f5;
-    color: #3f3f46;
+    background: rgb(255 255 255 / 12%);
+    color: #d8ebe4;
 }
 
 .count {
-    color: #6b4b37;
+    color: #d8ebe4;
     font-size: 12px;
 }
 
@@ -75,7 +79,11 @@ h2 {
     background: transparent;
     cursor: pointer;
     padding: 2px;
-    transition: transform 120ms ease, box-shadow 140ms ease, background-color 140ms ease;
+    transition:
+        opacity 120ms ease,
+        transform 120ms ease,
+        box-shadow 140ms ease,
+        background-color 140ms ease;
 }
 
 .tile-button:not(.disabled):hover {
@@ -86,13 +94,39 @@ h2 {
     cursor: not-allowed;
 }
 
+.tile-button.dragging {
+    opacity: 0.42;
+    transform: translateY(-4px) scale(0.96);
+}
+
+.tile-button.drag-preview {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(255 209 102 / 78%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 18%) 0%, transparent 100%),
+        rgb(19 173 125 / 28%);
+    box-shadow:
+        0 0 0 2px rgb(255 209 102 / 42%),
+        0 18px 30px rgb(0 0 0 / 34%);
+    opacity: 1;
+    transform: rotate(-3deg) scale(1.08);
+}
+
 .tile-button.playable:not(.disabled) {
-    background: rgb(34 197 94 / 16%);
-    box-shadow: 0 0 0 1px rgb(22 101 52 / 45%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 14%) 0%, transparent 100%),
+        rgb(19 173 125 / 18%);
+    box-shadow:
+        0 0 0 1px rgb(255 209 102 / 46%),
+        0 5px 14px rgb(0 0 0 / 20%);
 }
 
 .tile-button.playable:not(.disabled):hover {
-    box-shadow: 0 0 0 1px rgb(22 101 52 / 65%), 0 6px 16px rgb(22 101 52 / 24%);
+    box-shadow:
+        0 0 0 1px rgb(255 209 102 / 82%),
+        0 8px 18px rgb(19 173 125 / 24%);
 }
 
 @media (max-width: 640px), (max-height: 520px) {
@@ -102,13 +136,17 @@ h2 {
     }
 
     .hand-panel.waiting {
-        background: rgb(244 244 245 / 92%);
+        background:
+            linear-gradient(180deg, rgb(255 255 255 / 8%) 0%, transparent 100%),
+            #161d1b;
         filter: saturate(0.7);
     }
 
     .hand-panel.can-play {
-        background: rgb(236 253 245 / 96%);
-        box-shadow: 0 0 0 1px rgb(22 101 52 / 30%);
+        background:
+            linear-gradient(180deg, rgb(255 255 255 / 12%) 0%, transparent 100%),
+            #143429;
+        box-shadow: 0 0 0 1px rgb(255 209 102 / 30%);
     }
 
     .hand-header {
@@ -134,8 +172,8 @@ h2 {
     }
 
     .tile-button.playable:not(.disabled) {
-        background: rgb(34 197 94 / 28%);
-        box-shadow: 0 0 0 2px rgb(22 101 52 / 72%);
+        background: rgb(19 173 125 / 28%);
+        box-shadow: 0 0 0 2px rgb(255 209 102 / 70%);
     }
 
     .tiles::-webkit-scrollbar {
@@ -144,6 +182,6 @@ h2 {
 
     .tiles::-webkit-scrollbar-thumb {
         border-radius: 999px;
-        background: #cbd5e1;
+        background: #ffd166;
     }
 }
