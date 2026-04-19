@@ -1,13 +1,13 @@
 .turn-panel {
-    border: 1px solid #fcd34d;
+    border: 1px solid #6b3f27;
     border-radius: 8px;
-    background: #fffbeb;
+    background: rgb(255 250 240 / 95%);
     padding: 12px;
 }
 
 .turn-panel.human {
-    border-color: #93c5fd;
-    background: #eff6ff;
+    border-color: #14532d;
+    background: #ecfdf5;
 }
 
 h2 {
@@ -46,17 +46,17 @@ h2 {
     height: 8px;
     overflow: hidden;
     border-radius: 999px;
-    background: #e4e4e7;
+    background: #d6d3d1;
 }
 
 .bar {
     height: 100%;
-    background: #2563eb;
+    background: #14532d;
     transition: width 160ms linear;
 }
 
 .bar.warning {
-    background: #f59e0b;
+    background: #b45309;
 }
 
 @media (max-width: 640px) {

@@ -54,3 +54,37 @@ h2 {
     line-height: 1.1;
     margin-top: 4px;
 }
+
+:host-context(.mobile-score-strip) .panel {
+    height: 100%;
+    padding: 2px 4px;
+}
+
+:host-context(.mobile-score-strip) .panel-header {
+    display: none;
+}
+
+:host-context(.mobile-score-strip) .score-grid {
+    height: 100%;
+    grid-template-columns: 1fr;
+    gap: 2px;
+}
+
+:host-context(.mobile-score-strip) .score-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    min-height: 0;
+    padding: 2px 4px;
+}
+
+:host-context(.mobile-score-strip) .label {
+    font-size: 9px;
+    font-weight: 700;
+}
+
+:host-context(.mobile-score-strip) .value {
+    font-size: 14px;
+    margin-top: 0;
+}

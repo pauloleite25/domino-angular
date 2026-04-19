@@ -3,18 +3,19 @@ import { getPlayableEnds } from "../../../../core/domino";
 import type { BoardSide, BoardState, DominoTile, PlayerId, TeamId } from "../../../../core/domino";
 import { getBoardLayout, LayoutTile } from "../../model/board-layout";
 
-const TILE_LONG_SIDE_PX_DESKTOP = 68;
-const TILE_LONG_SIDE_PX_MOBILE = 51;
+const TILE_LONG_SIDE_PX_DESKTOP = 82;
+const TILE_LONG_SIDE_PX_MOBILE = 62;
 const BOARD_EDGE_PADDING_PX_DESKTOP = 80;
 const BOARD_EDGE_PADDING_PX_MOBILE = 44;
+const BOARD_LAYOUT_MAX_X = 6;
+const BOARD_LAYOUT_MAX_Y = 3;
 const MARKER_TIP_OFFSET_UNITS = 0.45;
 const MIN_BOARD_SCALE_DESKTOP = 0.01;
 const MIN_BOARD_SCALE_MOBILE = 0.01;
-const MIN_READABLE_SCALE_MOBILE = 0.38;
-const SCALE_SHRINK_FACTOR = 0.88;
 
 export type BoardPlayer = {
     readonly id: PlayerId;
+    readonly name: string;
     readonly team: TeamId;
     readonly handCount: number;
     readonly isHuman: boolean;
@@ -39,14 +40,24 @@ export class DominoBoardComponent {
     @Input() canOpenWithSelectedTile = false;
     @Output() selectEnd = new EventEmitter<BoardSide>();
     @Output() playOpening = new EventEmitter<void>();
+    @Output() dropOnEnds = new EventEmitter<readonly BoardSide[]>();
+    @Output() dropOnOpening = new EventEmitter<void>();
 
     readonly sides: readonly BoardSide[] = ["north", "east", "south", "west"];
 
     get isMobileViewport(): boolean {
-        return typeof window !== "undefined" && window.matchMedia("(max-width: 640px)").matches;
+        return typeof window !== "undefined" && window.matchMedia("(max-width: 640px), (max-height: 520px)").matches;
+    }
+
+    get isMobileLandscapeViewport(): boolean {
+        return typeof window !== "undefined" && window.matchMedia("(max-height: 520px) and (orientation: landscape)").matches;
     }
 
     get tileLongSidePx(): number {
+        if (this.isMobileLandscapeViewport) {
+            return TILE_LONG_SIDE_PX_DESKTOP;
+        }
+
         return this.isMobileViewport ? TILE_LONG_SIDE_PX_MOBILE : TILE_LONG_SIDE_PX_DESKTOP;
     }
 
@@ -68,7 +79,7 @@ export class DominoBoardComponent {
             return this.isMobileViewport ? 520 : 860;
         }
 
-        const fraction = this.isMobileViewport ? 0.94 : 0.86;
+        const fraction = this.isMobileLandscapeViewport ? 0.84 : this.isMobileViewport ? 0.94 : 0.86;
         return Math.max(220, Math.floor(window.innerHeight * fraction));
     }
 
@@ -82,7 +93,10 @@ export class DominoBoardComponent {
 
     get layout() {
         return this.openingTile
-            ? getBoardLayout(this.openingTile, this.openingOrientation, this.boardBranches, { maxX: 6, maxY: 3 })
+            ? getBoardLayout(this.openingTile, this.openingOrientation, this.boardBranches, {
+                  maxX: BOARD_LAYOUT_MAX_X,
+                  maxY: BOARD_LAYOUT_MAX_Y,
+              })
             : null;
     }
 
@@ -148,16 +162,7 @@ export class DominoBoardComponent {
 
     get boardScale(): number {
         const fitScale = Math.min(this.boardViewportWidth / this.boardCanvasWidth, this.boardViewportHeight / this.boardCanvasHeight);
-        const softenedFitScale =
-            fitScale >= 1 ? fitScale : 1 - (1 - fitScale) * SCALE_SHRINK_FACTOR;
-
-        const readableScale = this.isMobileViewport ? MIN_READABLE_SCALE_MOBILE : this.minBoardScale;
-
-        return Math.max(
-            this.minBoardScale,
-            readableScale,
-            softenedFitScale,
-        );
+        return Math.max(this.minBoardScale, Math.min(1, fitScale));
     }
 
     get canvasShellStyle(): Record<string, string> {
@@ -252,5 +257,28 @@ export class DominoBoardComponent {
     handleTileEdgeClick(side: BoardSide, event: MouseEvent): void {
         event.stopPropagation();
         this.selectEnd.emit(side);
+    }
+
+    handleDragOver(event: DragEvent): void {
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = "move";
+        }
+    }
+
+    handleTileDrop(entry: LayoutTile, event: DragEvent): void {
+        event.preventDefault();
+        event.stopPropagation();
+        const sides = this.targetSidesForTile(entry);
+        if (sides.length === 0) {
+            return;
+        }
+
+        this.dropOnEnds.emit(sides);
+    }
+
+    handleOpeningDrop(event: DragEvent): void {
+        event.preventDefault();
+        this.dropOnOpening.emit();
     }
 }

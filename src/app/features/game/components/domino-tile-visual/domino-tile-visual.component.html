@@ -5,16 +5,44 @@
     [ngStyle]="svgStyle"
     [class.default-size]="fixedLongSidePx === undefined"
     [class.disabled]="disabled">
+    <defs>
+        <linearGradient [attr.id]="shellGradientId" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ffffff" />
+            <stop offset="48%" stop-color="#f7f7f6" />
+            <stop offset="100%" stop-color="#ececeb" />
+        </linearGradient>
+        <radialGradient [attr.id]="pipGradientId" cx="35%" cy="30%" r="75%">
+            <stop offset="0%" stop-color="#252525" />
+            <stop offset="60%" stop-color="#0f0f10" />
+            <stop offset="100%" stop-color="#000000" />
+        </radialGradient>
+        <filter [attr.id]="tileShadowId" x="-20%" y="-20%" width="140%" height="150%">
+            <feDropShadow dx="0.8" dy="1.6" stdDeviation="1.2" flood-color="#000000" flood-opacity="0.25" />
+        </filter>
+        <filter [attr.id]="dividerShadowId" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0.2" dy="0.2" stdDeviation="0.2" flood-color="#000000" flood-opacity="0.35" />
+        </filter>
+    </defs>
+
     <rect
         x="1"
         y="1"
         [attr.width]="width - 2"
         [attr.height]="height - 2"
-        rx="8"
-        ry="8"
-        [attr.fill]="fillColor"
+        [attr.rx]="cornerRadius"
+        [attr.ry]="cornerRadius"
+        [attr.fill]="'url(#' + shellGradientId + ')'"
         [attr.stroke]="strokeColor"
-        stroke-width="2.2" />
+        stroke-width="1.9"
+        [attr.filter]="'url(#' + tileShadowId + ')'" />
+
+    <ellipse
+        [attr.cx]="shellHighlightBox.x + shellHighlightBox.width / 2"
+        [attr.cy]="shellHighlightBox.y + shellHighlightBox.height / 2"
+        [attr.rx]="shellHighlightBox.width / 2"
+        [attr.ry]="shellHighlightBox.height / 2"
+        fill="#ffffff"
+        opacity="0.38" />
 
     <line
         *ngIf="isHorizontal"
@@ -23,7 +51,7 @@
         [attr.x2]="width / 2"
         [attr.y2]="height - 5"
         [attr.stroke]="dividerColor"
-        stroke-width="2" />
+        [attr.stroke-width]="dividerStrokeWidth" />
 
     <line
         *ngIf="!isHorizontal"
@@ -32,21 +60,33 @@
         [attr.x2]="width - 5"
         [attr.y2]="height / 2"
         [attr.stroke]="dividerColor"
-        stroke-width="2" />
+        [attr.stroke-width]="dividerStrokeWidth" />
 
-    <circle
-        *ngFor="let pip of getPips(left, firstHalf)"
-        [attr.cx]="pip.x"
-        [attr.cy]="pip.y"
-        [attr.r]="pipRadius"
-        [attr.fill]="pipColor" />
+    <g *ngFor="let pip of getPips(left, firstHalf)">
+        <circle
+            [attr.cx]="pip.x"
+            [attr.cy]="pip.y"
+            [attr.r]="pipRadius"
+            [attr.fill]="'url(#' + pipGradientId + ')'" />
+        <circle
+            [attr.cx]="pip.x - 0.7"
+            [attr.cy]="pip.y - 0.9"
+            [attr.r]="pipRadius * 0.23"
+            fill="#ffffff"
+            opacity="0.28" />
+    </g>
 
-    <circle
-        *ngFor="let pip of getPips(right, secondHalf)"
-        [attr.cx]="pip.x"
-        [attr.cy]="pip.y"
-        [attr.r]="pipRadius"
-        [attr.fill]="pipColor" />
-
-    <circle *ngIf="playable && !selected" [attr.cx]="width - 6" cy="6" r="4" fill="#10b981" />
+    <g *ngFor="let pip of getPips(right, secondHalf)">
+        <circle
+            [attr.cx]="pip.x"
+            [attr.cy]="pip.y"
+            [attr.r]="pipRadius"
+            [attr.fill]="'url(#' + pipGradientId + ')'" />
+        <circle
+            [attr.cx]="pip.x - 0.7"
+            [attr.cy]="pip.y - 0.9"
+            [attr.r]="pipRadius * 0.23"
+            fill="#ffffff"
+            opacity="0.28" />
+    </g>
 </svg>

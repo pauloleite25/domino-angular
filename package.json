@@ -4,7 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "node scripts/lan-duo-server.mjs",
-    "dev": "ng serve",
+    "dev": "node scripts/dev-with-rooms.mjs",
+    "dev:angular": "ng serve",
     "lan-duo": "node scripts/lan-duo-server.mjs",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",

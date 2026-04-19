@@ -30,6 +30,7 @@ import type {
 } from "../../../core/domino";
 
 export type BoardBranches = Record<BoardSide, readonly DominoTile[]>;
+export type PlayerNames = Partial<Record<PlayerId, string>>;
 
 export type MoveHistoryEntry = {
     readonly id: number;
@@ -92,6 +93,8 @@ export type GaloPopup = {
 };
 
 type LocalMatchState = {
+    readonly humanPlayers: readonly PlayerId[];
+    readonly playerNames: PlayerNames;
     readonly match: MatchState | null;
     readonly boardBranches: BoardBranches;
     readonly moveHistory: readonly MoveHistoryEntry[];
@@ -116,6 +119,7 @@ type NetworkConfig = {
     readonly roomId: string;
     readonly role: PlayerId;
     readonly humanPlayers: readonly PlayerId[];
+    readonly playerNames: PlayerNames;
     readonly isHost: boolean;
     readonly apiBase: string;
 };
@@ -126,8 +130,17 @@ type NetworkCommand = {
     readonly move: LegalMove;
 };
 
+type NetworkRoomPayload = {
+    readonly exists?: boolean;
+    readonly room?: {
+        readonly humanPlayers?: readonly PlayerId[];
+        readonly playerNames?: PlayerNames;
+    } | null;
+};
+
 export type PlayerView = {
     readonly id: PlayerId;
+    readonly name: string;
     readonly team: TeamId;
     readonly handCount: number;
     readonly isHuman: boolean;
@@ -137,7 +150,7 @@ export type PlayerView = {
 const HUMAN_PLAYER: PlayerId = "A";
 const SIMULATE_ALL_BOTS = false;
 const TURN_ORDER: readonly PlayerId[] = ["A", "B", "C", "D"];
-const BOT_MOVE_DELAY_MS = 1000;
+const BOT_MOVE_DELAY_MS = 2000;
 const GALO_BONUS_POINTS = 50;
 const CARROCA_BATIDA_BONUS_POINTS = 20;
 
@@ -158,6 +171,15 @@ function nextTurn(playerId: PlayerId): PlayerId {
     const index = TURN_ORDER.indexOf(playerId);
     const nextIndex = (index + 1) % TURN_ORDER.length;
     return TURN_ORDER[nextIndex];
+}
+
+function mergePlayerIds(...groups: readonly (readonly PlayerId[])[]): readonly PlayerId[] {
+    const players = new Set(groups.flat());
+    return TURN_ORDER.filter((playerId) => players.has(playerId));
+}
+
+function isPlaceholderPlayerName(playerId: PlayerId, name: string): boolean {
+    return name.trim().toLowerCase() === `jogador ${playerId.toLowerCase()}`;
 }
 
 function getPlayerTeam(playerId: PlayerId): TeamId {
@@ -338,6 +360,8 @@ function getRoundEndSummary(round: RoundState, result: RoundResult): RoundEndSum
 
 function buildInitialLocalState(): LocalMatchState {
     return {
+        humanPlayers: [HUMAN_PLAYER],
+        playerNames: {},
         match: null,
         boardBranches: createEmptyBoardBranches(),
         moveHistory: [],
@@ -354,9 +378,11 @@ function buildInitialLocalState(): LocalMatchState {
     };
 }
 
-function createFreshLocalState(): ActiveLocalMatchState {
+function createFreshLocalState(humanPlayers: readonly PlayerId[], playerNames: PlayerNames): ActiveLocalMatchState {
     const match = createInitialMatchState();
     return {
+        humanPlayers,
+        playerNames,
         match,
         boardBranches: createEmptyBoardBranches(),
         moveHistory: [],
@@ -382,7 +408,7 @@ function isActiveState(state: LocalMatchState): state is ActiveLocalMatchState {
 })
 export class LocalMatchService implements OnDestroy {
     private state: LocalMatchState = buildInitialLocalState();
-    private readonly networkConfig = this.readNetworkConfig();
+    private networkConfig = this.readNetworkConfig();
     private botTimeoutId: number | null = null;
     private botIntervalId: number | null = null;
     private networkIntervalId: number | null = null;
@@ -392,6 +418,7 @@ export class LocalMatchService implements OnDestroy {
     botActionCountdown: number | null = null;
 
     constructor() {
+        void this.refreshNetworkRoomInfo();
         this.startNetworkSync();
     }
 
@@ -436,13 +463,19 @@ export class LocalMatchService implements OnDestroy {
             return [];
         }
 
-        return TURN_ORDER.map((playerId) => ({
-            id: playerId,
-            team: getPlayerTeam(playerId),
-            handCount: this.state.match!.currentRound.hands[playerId].length,
-            isHuman: !SIMULATE_ALL_BOTS && this.isHumanPlayer(playerId),
-            isCurrent: !this.isRoundOver && playerId === this.state.currentPlayer,
-        }));
+        const botPlayers = TURN_ORDER.filter((playerId) => !this.isHumanPlayer(playerId));
+        return TURN_ORDER.map((playerId) => {
+            const isHuman = !SIMULATE_ALL_BOTS && this.isHumanPlayer(playerId);
+            const botIndex = botPlayers.indexOf(playerId);
+            return {
+                id: playerId,
+                name: this.getPlayerName(playerId, isHuman, botIndex),
+                team: getPlayerTeam(playerId),
+                handCount: this.state.match!.currentRound.hands[playerId].length,
+                isHuman,
+                isCurrent: !this.isRoundOver && playerId === this.state.currentPlayer,
+            };
+        });
     }
 
     get roundStarter(): PlayerId | null {
@@ -519,8 +552,63 @@ export class LocalMatchService implements OnDestroy {
         return this.networkConfig?.roomId ?? null;
     }
 
+    get isNetworkHost(): boolean {
+        return this.networkConfig?.isHost ?? false;
+    }
+
+    get networkHumanPlayers(): readonly PlayerId[] {
+        if (this.networkConfig === null) {
+            return this.state.humanPlayers;
+        }
+
+        return mergePlayerIds(this.state.humanPlayers, this.networkConfig.humanPlayers);
+    }
+
+    get networkPlayerNames(): PlayerNames {
+        return {
+            ...(this.networkConfig?.playerNames ?? {}),
+            ...this.state.playerNames,
+        };
+    }
+
     get humanPlayer(): PlayerId {
         return this.networkConfig?.role ?? HUMAN_PLAYER;
+    }
+
+    get humanPlayerName(): string {
+        return this.getPlayerName(this.humanPlayer, true, -1);
+    }
+
+    playerLabel(playerId: PlayerId | null): string {
+        if (playerId === null) {
+            return "";
+        }
+
+        const player = this.players.find((item) => item.id === playerId);
+        return player?.name ?? playerId;
+    }
+
+    setNetworkRoomInfo(humanPlayers: readonly PlayerId[], playerNames: PlayerNames = {}): void {
+        if (this.networkConfig === null) {
+            return;
+        }
+
+        const mergedHumanPlayers = mergePlayerIds(this.networkConfig.humanPlayers, this.state.humanPlayers, humanPlayers);
+        const mergedPlayerNames = {
+            ...this.state.playerNames,
+            ...this.networkConfig.playerNames,
+            ...playerNames,
+        };
+        this.networkConfig = {
+            ...this.networkConfig,
+            humanPlayers: mergedHumanPlayers,
+            playerNames: mergedPlayerNames,
+        };
+        this.state = {
+            ...this.state,
+            humanPlayers: mergedHumanPlayers,
+            playerNames: mergedPlayerNames,
+        };
     }
 
     dismissGaloPopup(): void {
@@ -536,7 +624,7 @@ export class LocalMatchService implements OnDestroy {
         }
 
         this.botActionCountdown = null;
-        this.setState(createFreshLocalState());
+        this.setState(createFreshLocalState(this.networkHumanPlayers, this.networkPlayerNames));
     }
 
     startNextRound(): void {
@@ -551,6 +639,8 @@ export class LocalMatchService implements OnDestroy {
 
         this.setState({
             ...this.state,
+            humanPlayers: this.networkHumanPlayers,
+            playerNames: this.networkPlayerNames,
             match: this.state.pendingNextMatch,
             boardBranches: createEmptyBoardBranches(),
             currentPlayer: this.state.pendingNextMatch.currentRound.starter,
@@ -589,7 +679,11 @@ export class LocalMatchService implements OnDestroy {
     }
 
     private setState(nextState: LocalMatchState): void {
-        this.state = nextState;
+        this.state = {
+            ...nextState,
+            humanPlayers: this.networkHumanPlayers,
+            playerNames: this.networkPlayerNames,
+        };
         if (this.networkConfig?.isHost) {
             void this.postNetworkSnapshot();
         }
@@ -619,11 +713,13 @@ export class LocalMatchService implements OnDestroy {
         }
 
         const humanPlayers = this.parseHumanPlayers(params.get("humans"));
+        const playerNames = this.parsePlayerNames(params.get("names"));
         const apiBase = params.get("api") ?? this.getDefaultApiBase();
         return {
             roomId,
             role,
             humanPlayers,
+            playerNames,
             isHost: role === "A",
             apiBase,
         };
@@ -654,9 +750,45 @@ export class LocalMatchService implements OnDestroy {
         return players.length > 0 ? Array.from(new Set(players)) : ["A", "B", "C", "D"];
     }
 
+    private parsePlayerNames(value: string | null): PlayerNames {
+        if (value === null || value.trim() === "") {
+            return {};
+        }
+
+        try {
+            const parsed = JSON.parse(value) as Record<string, unknown>;
+            return TURN_ORDER.reduce<PlayerNames>((names, playerId) => {
+                const rawName = parsed[playerId];
+                if (typeof rawName === "string" && rawName.trim()) {
+                    const name = rawName.trim().slice(0, 24);
+                    if (!isPlaceholderPlayerName(playerId, name)) {
+                        names[playerId] = name;
+                    }
+                }
+
+                return names;
+            }, {});
+        } catch {
+            return {};
+        }
+    }
+
+    private getPlayerName(playerId: PlayerId, isHuman: boolean, botIndex: number): string {
+        const configuredName = this.networkPlayerNames[playerId]?.trim();
+        if (configuredName && !isPlaceholderPlayerName(playerId, configuredName)) {
+            return configuredName;
+        }
+
+        if (!isHuman) {
+            return `CPU ${botIndex + 1}`;
+        }
+
+        return playerId === this.humanPlayer ? "Voce" : playerId;
+    }
+
     private isHumanPlayer(playerId: PlayerId): boolean {
         if (this.networkConfig !== null) {
-            return this.networkConfig.humanPlayers.includes(playerId);
+            return this.networkHumanPlayers.includes(playerId);
         }
 
         return playerId === HUMAN_PLAYER;
@@ -668,7 +800,7 @@ export class LocalMatchService implements OnDestroy {
         }
 
         if (this.networkConfig !== null) {
-            return this.networkConfig.isHost && !this.networkConfig.humanPlayers.includes(playerId);
+            return this.networkConfig.isHost && !this.networkHumanPlayers.includes(playerId);
         }
 
         return playerId !== HUMAN_PLAYER;
@@ -692,6 +824,27 @@ export class LocalMatchService implements OnDestroy {
         void this.pollNetworkSnapshot();
     }
 
+    async refreshNetworkRoomInfo(): Promise<void> {
+        if (this.networkConfig === null) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${this.networkConfig.apiBase}/rooms/${encodeURIComponent(this.networkConfig.roomId)}`);
+            const payload = (await response.json()) as NetworkRoomPayload;
+            if (!response.ok || !payload.room) {
+                return;
+            }
+
+            this.setNetworkRoomInfo(
+                payload.room.humanPlayers ?? this.networkConfig.humanPlayers,
+                payload.room.playerNames ?? {},
+            );
+        } catch {
+            // O jogo continua com os dados da URL caso a consulta da sala falhe.
+        }
+    }
+
     private async postNetworkSnapshot(): Promise<void> {
         if (!this.networkConfig?.isHost) {
             return;
@@ -713,14 +866,37 @@ export class LocalMatchService implements OnDestroy {
         const payload = (await response.json()) as {
             readonly version: number;
             readonly snapshot: LocalMatchState | null;
+            readonly room?: {
+                readonly humanPlayers?: readonly PlayerId[];
+                readonly playerNames?: PlayerNames;
+            };
         };
+        if (payload.room) {
+            this.setNetworkRoomInfo(
+                payload.room.humanPlayers ?? this.networkHumanPlayers,
+                payload.room.playerNames ?? {},
+            );
+        }
+
         if (payload.snapshot === null || payload.version <= this.lastSnapshotVersion) {
             return;
         }
 
         this.lastSnapshotVersion = payload.version;
         this.clearBotTimers();
-        this.state = payload.snapshot;
+        const snapshot = payload.snapshot as LocalMatchState & Partial<Pick<LocalMatchState, "humanPlayers" | "playerNames">>;
+        const humanPlayers = mergePlayerIds(this.networkHumanPlayers, payload.room?.humanPlayers ?? [], snapshot.humanPlayers ?? []);
+        const playerNames = {
+            ...(snapshot.playerNames ?? {}),
+            ...this.networkPlayerNames,
+            ...(payload.room?.playerNames ?? {}),
+        };
+        this.setNetworkRoomInfo(humanPlayers, playerNames);
+        this.state = {
+            ...snapshot,
+            humanPlayers,
+            playerNames,
+        };
     }
 
     private async postNetworkCommand(move: LegalMove): Promise<void> {
@@ -741,6 +917,11 @@ export class LocalMatchService implements OnDestroy {
     private async pollNetworkCommands(): Promise<void> {
         if (!this.networkConfig?.isHost) {
             return;
+        }
+
+        await this.refreshNetworkRoomInfo();
+        if (this.hasMatch) {
+            void this.postNetworkSnapshot();
         }
 
         const response = await fetch(
@@ -839,19 +1020,31 @@ export class LocalMatchService implements OnDestroy {
         let historyEntry: MoveHistoryEntry;
         let lastPlayedPlayerAfterMove = state.lastPlayedPlayer;
         let passChainAfterMove = state.passChain;
-        let revokeFirstPassPointsForGalo = false;
-        let firstPasserForGalo: PlayerId | null = null;
         let galoPopupAfterMove = state.galoPopup;
+        let adjustedPreviousHistory = state.moveHistory;
 
         if (move.kind === "play") {
             const isGalo = state.passChain?.afterPlayBy === currentPlayer && state.passChain.passers.length === 3;
             const galoPoints = isGalo ? GALO_BONUS_POINTS : 0;
+            if (isGalo && state.passChain !== null && state.passChain.firstPassPoints > 0) {
+                scoreAfterMove = subtractPoints(
+                    scoreAfterMove,
+                    state.passChain.firstPassAwardedTeam,
+                    state.passChain.firstPassPoints,
+                );
+            }
             const immediatePoints = getScoreForPlayedMove(roundAfterMove.board, roundAfterMove.starter);
             const totalPlayPoints = immediatePoints + galoPoints;
             const team = getTeamByPlayer(currentPlayer);
+            if (isGalo) {
+                adjustedPreviousHistory = this.trimTrailingPassEntriesForRound(
+                    adjustedPreviousHistory,
+                    match.currentRound.roundNumber,
+                );
+            }
             if (galoPoints > 0) {
                 galoPopupAfterMove = {
-                    id: state.moveHistory.length + 1,
+                    id: adjustedPreviousHistory.length + 1,
                     playerId: currentPlayer,
                     team,
                     points: galoPoints,
@@ -863,7 +1056,7 @@ export class LocalMatchService implements OnDestroy {
                     ? { type: "score", playerId: currentPlayer, team, points: totalPlayPoints }
                     : { type: "play", playerId: currentPlayer };
             historyEntry = {
-                id: state.moveHistory.length + 1,
+                id: adjustedPreviousHistory.length + 1,
                 roundNumber: match.currentRound.roundNumber,
                 playerId: currentPlayer,
                 description: `${currentPlayer} jogou ${formatTileForHistory(playedTileForHistory ?? move.piece)}${galoPoints > 0 ? " (galo +50)" : ""}`,
@@ -899,17 +1092,11 @@ export class LocalMatchService implements OnDestroy {
                         ? state.passChain.firstPassPoints
                         : penaltyPoints;
 
-                if (nextPassers.length >= 3 && previousFirstPassPoints > 0) {
-                    scoreAfterMove = subtractPoints(scoreAfterMove, previousFirstPassTeam, previousFirstPassPoints);
-                    revokeFirstPassPointsForGalo = true;
-                    firstPasserForGalo = nextPassers[0] ?? null;
-                }
-
                 passChainAfterMove = {
                     afterPlayBy: state.lastPlayedPlayer,
                     passers: nextPassers,
-                    firstPassAwardedTeam: nextPassers.length >= 3 ? null : previousFirstPassTeam,
-                    firstPassPoints: nextPassers.length >= 3 ? 0 : previousFirstPassPoints,
+                    firstPassAwardedTeam: previousFirstPassTeam,
+                    firstPassPoints: previousFirstPassPoints,
                 };
             }
 
@@ -931,27 +1118,6 @@ export class LocalMatchService implements OnDestroy {
             };
         }
 
-        let adjustedPreviousHistory = state.moveHistory;
-        if (revokeFirstPassPointsForGalo && firstPasserForGalo !== null) {
-            const previousItems = [...state.moveHistory];
-            for (let index = previousItems.length - 1; index >= 0; index -= 1) {
-                const item = previousItems[index];
-                if (
-                    item.roundNumber === match.currentRound.roundNumber &&
-                    item.playerId === firstPasserForGalo &&
-                    item.points > 0 &&
-                    item.description.startsWith(`${firstPasserForGalo} passou`)
-                ) {
-                    previousItems[index] = {
-                        ...item,
-                        points: 0,
-                        description: `${firstPasserForGalo} passou (galo: sem pontuacao de passe)`,
-                    };
-                    break;
-                }
-            }
-            adjustedPreviousHistory = previousItems;
-        }
         const moveHistoryAfterMove = [...adjustedPreviousHistory, historyEntry];
 
         let matchAfterMove: MatchState = {
@@ -967,6 +1133,17 @@ export class LocalMatchService implements OnDestroy {
                 roundResult.reason === "batida" &&
                 roundResult.winnerPlayer === currentPlayer &&
                 isDouble(move.piece);
+            const moveHistoryWithCarrocaBonus =
+                hasCarrocaBatidaBonus && moveHistoryAfterMove.length > 0
+                    ? [
+                          ...moveHistoryAfterMove.slice(0, -1),
+                          {
+                              ...moveHistoryAfterMove[moveHistoryAfterMove.length - 1],
+                              points: moveHistoryAfterMove[moveHistoryAfterMove.length - 1].points + CARROCA_BATIDA_BONUS_POINTS,
+                              description: `${moveHistoryAfterMove[moveHistoryAfterMove.length - 1].description} (carroca batida +20)`,
+                          },
+                      ]
+                    : moveHistoryAfterMove;
             const adjustedRoundResult: RoundResult = hasCarrocaBatidaBonus
                 ? {
                       ...roundResult,
@@ -980,16 +1157,16 @@ export class LocalMatchService implements OnDestroy {
             const moveHistoryAfterRoundEnd =
                 adjustedRoundResult.winnerTeam !== null && garagemPoints > 0
                     ? [
-                          ...moveHistoryAfterMove,
+                          ...moveHistoryWithCarrocaBonus,
                           {
-                              id: moveHistoryAfterMove.length + 1,
+                              id: moveHistoryWithCarrocaBonus.length + 1,
                               roundNumber: match.currentRound.roundNumber,
                               playerId: currentPlayer,
                               description: `${adjustedRoundResult.winnerTeam} recebeu de garagem:`,
                               points: garagemPoints,
                           },
                       ]
-                    : moveHistoryAfterMove;
+                    : moveHistoryWithCarrocaBonus;
             const matchAfterRoundEnd = applyRoundEnd(matchAfterMove, adjustedRoundResult);
             const finishedRoundMatch: MatchState = {
                 ...matchAfterRoundEnd,
@@ -1006,6 +1183,8 @@ export class LocalMatchService implements OnDestroy {
                   });
 
             return {
+                humanPlayers: state.humanPlayers,
+                playerNames: state.playerNames,
                 match: finishedRoundMatch,
                 boardBranches: boardBranchesAfterMove,
                 moveHistory: moveHistoryAfterRoundEnd,
@@ -1031,6 +1210,8 @@ export class LocalMatchService implements OnDestroy {
         };
 
         return {
+            humanPlayers: state.humanPlayers,
+            playerNames: state.playerNames,
             match: matchAfterMove,
             boardBranches: boardBranchesAfterMove,
             moveHistory: moveHistoryAfterMove,
@@ -1045,5 +1226,22 @@ export class LocalMatchService implements OnDestroy {
             recentEvent,
             galoPopup: galoPopupAfterMove,
         };
+    }
+
+    private trimTrailingPassEntriesForRound(
+        history: readonly MoveHistoryEntry[],
+        roundNumber: number,
+    ): readonly MoveHistoryEntry[] {
+        let index = history.length - 1;
+        while (index >= 0) {
+            const item = history[index];
+            if (item.roundNumber !== roundNumber || !item.description.includes(" passou")) {
+                break;
+            }
+
+            index -= 1;
+        }
+
+        return history.slice(0, index + 1);
     }
 }

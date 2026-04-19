@@ -5,6 +5,7 @@
 svg {
     display: block;
     opacity: 1;
+    shape-rendering: geometricPrecision;
 }
 
 .default-size {
@@ -13,5 +14,6 @@ svg {
 }
 
 .disabled {
-    opacity: 0.7;
+    opacity: 0.78;
+    filter: saturate(0.75);
 }

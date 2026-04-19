@@ -1,7 +1,8 @@
 .hand-panel {
-    border: 1px solid #e4e4e7;
+    border: 1px solid #6b3f27;
     border-radius: 8px;
-    background: #ffffff;
+    background: rgb(255 250 240 / 95%);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 45%);
     padding: 12px;
 }
 
@@ -23,6 +24,7 @@
 h2 {
     margin: 0;
     font-size: 16px;
+    color: #422615;
 }
 
 .status,
@@ -55,7 +57,7 @@ h2 {
 }
 
 .count {
-    color: #52525b;
+    color: #6b4b37;
     font-size: 12px;
 }
 
@@ -85,21 +87,32 @@ h2 {
 }
 
 .tile-button.playable:not(.disabled) {
-    background: rgb(16 185 129 / 10%);
-    box-shadow: 0 0 0 1px rgb(16 185 129 / 35%);
+    background: rgb(34 197 94 / 16%);
+    box-shadow: 0 0 0 1px rgb(22 101 52 / 45%);
 }
 
 .tile-button.playable:not(.disabled):hover {
-    box-shadow: 0 0 0 1px rgb(16 185 129 / 55%), 0 6px 16px rgb(16 185 129 / 20%);
+    box-shadow: 0 0 0 1px rgb(22 101 52 / 65%), 0 6px 16px rgb(22 101 52 / 24%);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 640px), (max-height: 520px) {
     .hand-panel {
-        padding: 8px;
+        padding: 1px 3px;
+        border-radius: 6px;
     }
 
-    .count {
-        font-size: 11px;
+    .hand-panel.waiting {
+        background: rgb(244 244 245 / 92%);
+        filter: saturate(0.7);
+    }
+
+    .hand-panel.can-play {
+        background: rgb(236 253 245 / 96%);
+        box-shadow: 0 0 0 1px rgb(22 101 52 / 30%);
+    }
+
+    .hand-header {
+        display: none;
     }
 
     .tiles {
@@ -107,11 +120,26 @@ h2 {
         justify-content: flex-start;
         overflow-x: auto;
         overflow-y: hidden;
-        padding-bottom: 4px;
+        gap: 2px;
+        margin-top: 0;
+        padding-bottom: 0;
+    }
+
+    .tile-button {
+        padding: 0;
+    }
+
+    .tile-button.disabled {
+        opacity: 0.45;
+    }
+
+    .tile-button.playable:not(.disabled) {
+        background: rgb(34 197 94 / 28%);
+        box-shadow: 0 0 0 2px rgb(22 101 52 / 72%);
     }
 
     .tiles::-webkit-scrollbar {
-        height: 6px;
+        height: 3px;
     }
 
     .tiles::-webkit-scrollbar-thumb {

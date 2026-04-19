@@ -8,8 +8,11 @@ import type { PlayerId } from "../../../../core/domino";
 })
 export class TurnIndicatorComponent {
     @Input({ required: true }) currentPlayer!: PlayerId;
+    @Input() currentPlayerName = "";
     @Input({ required: true }) roundStarter!: PlayerId;
+    @Input() roundStarterName = "";
     @Input({ required: true }) nextPlayer!: PlayerId;
+    @Input() nextPlayerName = "";
     @Input({ required: true }) isHumanTurn = false;
     @Input() isBotTurn = false;
     @Input() botThinkingPlayer: PlayerId | null = null;
@@ -32,6 +35,6 @@ export class TurnIndicatorComponent {
     get statusText(): string {
         return this.isHumanTurn
             ? "Sua vez de jogar."
-            : `Bot ${this.botThinkingPlayer ?? this.currentPlayer} pensando...`;
+            : `${this.currentPlayerName || this.botThinkingPlayer || this.currentPlayer} pensando...`;
     }
 }

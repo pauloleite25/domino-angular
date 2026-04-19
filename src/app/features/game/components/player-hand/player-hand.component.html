@@ -1,8 +1,8 @@
-<section class="hand-panel">
+<section class="hand-panel" [class.can-play]="canInteract" [class.waiting]="!canInteract">
     <div class="hand-header">
         <div class="title-row">
-            <h2>Sua mao (A)</h2>
-            <span *ngIf="statusLabel" class="status" [class.current]="isCurrentPlayerA" [class.next]="isNextPlayerA">
+            <h2>{{ playerName }} ({{ playerId }})</h2>
+            <span *ngIf="statusLabel" class="status" [class.current]="isCurrentPlayer" [class.next]="isNextPlayer">
                 {{ statusLabel }}
             </span>
             <span *ngIf="didAStartRound" class="started">INICIOU</span>
@@ -20,12 +20,15 @@
             [class.playable]="isPlayable(tile)"
             [disabled]="!canInteract || !isPlayable(tile)"
             [class.disabled]="!canInteract || !isPlayable(tile)"
+            [attr.draggable]="canInteract && isPlayable(tile) ? true : null"
+            (dragstart)="handleDragStart($event, tile)"
+            (dragend)="handleDragEnd()"
             (click)="selectTile.emit(tile)">
             <app-domino-tile-visual
                 [left]="tile.left"
                 [right]="tile.right"
                 orientation="vertical"
-                [fixedLongSidePx]="48"
+                [fixedLongSidePx]="tileLongSidePx"
                 [selected]="selectedTileKey === tileKey(tile)"
                 [playable]="isPlayable(tile)"
                 playableStyle="hand"

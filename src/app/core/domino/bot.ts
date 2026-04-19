@@ -220,7 +220,7 @@ export function chooseBotMove(
     const strategicScore =
       scoreOpportunity * 100 +
       opponentBlockScore * 15 +
-      partnerProtectionScore * 10 +
+      partnerProtectionScore * 30 +
       ownFutureMoves * 4 +
       openValueMatches * 2 -
       opponentBestResponseScore * 20;

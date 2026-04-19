@@ -24,6 +24,8 @@ const TILE_HEIGHT = 112;
     styleUrl: "./domino-tile-visual.component.scss",
 })
 export class DominoTileVisualComponent {
+    private static nextVisualId = 0;
+
     @Input({ required: true }) left!: number;
     @Input({ required: true }) right!: number;
     @Input() orientation: DominoOrientation = "vertical";
@@ -34,6 +36,7 @@ export class DominoTileVisualComponent {
     @Input() playableStyle: PlayableStyle = "default";
 
     readonly pipRadius = 4.5;
+    readonly visualId = `domino-${DominoTileVisualComponent.nextVisualId++}`;
 
     get isHorizontal(): boolean {
         return this.orientation === "horizontal";
@@ -49,6 +52,44 @@ export class DominoTileVisualComponent {
 
     get viewBox(): string {
         return `0 0 ${this.width} ${this.height}`;
+    }
+
+    get cornerRadius(): number {
+        return 9;
+    }
+
+    get shellGradientId(): string {
+        return `${this.visualId}-shell-gradient`;
+    }
+
+    get pipGradientId(): string {
+        return `${this.visualId}-pip-gradient`;
+    }
+
+    get tileShadowId(): string {
+        return `${this.visualId}-tile-shadow`;
+    }
+
+    get dividerShadowId(): string {
+        return `${this.visualId}-divider-shadow`;
+    }
+
+    get shellHighlightBox(): Box {
+        if (this.isHorizontal) {
+            return {
+                x: this.width * 0.06,
+                y: this.height * 0.08,
+                width: this.width * 0.72,
+                height: this.height * 0.17,
+            };
+        }
+
+        return {
+            x: this.width * 0.1,
+            y: this.height * 0.05,
+            width: this.width * 0.66,
+            height: this.height * 0.12,
+        };
     }
 
     get svgStyle(): Record<string, string> {
@@ -123,14 +164,38 @@ export class DominoTileVisualComponent {
     }
 
     get dividerColor(): string {
-        return this.disabled ? "#71717a" : "#3f3f46";
+        return this.disabled ? "#52525b" : "#111111";
+    }
+
+    get dividerStrokeWidth(): number {
+        if (this.fixedLongSidePx !== undefined && this.fixedLongSidePx <= 56) {
+            return 2.6;
+        }
+
+        return 2.2;
     }
 
     getPips(value: number, box: Box): readonly Point[] {
-        return this.getPipPattern(value).map((point) => ({
+        const pattern =
+            value === 6 && this.isHorizontal
+                ? this.getSixHorizontalPattern()
+                : this.getPipPattern(value);
+
+        return pattern.map((point) => ({
             x: box.x + point.x * box.width,
             y: box.y + point.y * box.height,
         }));
+    }
+
+    private getSixHorizontalPattern(): readonly Point[] {
+        return [
+            { x: 0.24, y: 0.34 },
+            { x: 0.5, y: 0.34 },
+            { x: 0.76, y: 0.34 },
+            { x: 0.24, y: 0.66 },
+            { x: 0.5, y: 0.66 },
+            { x: 0.76, y: 0.66 },
+        ];
     }
 
     private getPipPattern(value: number): readonly Point[] {

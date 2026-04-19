@@ -114,8 +114,8 @@ function shouldStayOnPrimaryAxis(
   currentTile: DominoTile,
 ): boolean {
   void currentTile;
-  // Regra de layout: no maximo 4 pecas antes de mudar de direcao.
-  return placedOnPrimary.length < 4;
+  // Regra de layout: no maximo 3 pecas antes de mudar de direcao.
+  return placedOnPrimary.length < 3;
 }
 
 function getTurningTilePosition(
@@ -125,17 +125,32 @@ function getTurningTilePosition(
   primaryDirection: BoardSide,
   secondaryDirection: BoardSide,
 ): GridPoint {
-  const primaryDistance =
-    getTileExtentOnSide(previousOrientation, primaryDirection) / 2 +
-    getTileExtentOnSide(currentOrientation, primaryDirection) / 2;
+  const primaryDistance = Math.max(
+    0,
+    getTileExtentOnSide(previousOrientation, primaryDirection) / 2 -
+      getTileExtentOnSide(currentOrientation, primaryDirection) / 2,
+  );
   const secondaryDistance =
-    getTileExtentOnSide(currentOrientation, secondaryDirection) / 4;
+    getTileExtentOnSide(previousOrientation, secondaryDirection) / 2 +
+    getTileExtentOnSide(currentOrientation, secondaryDirection) / 2;
 
   return moveByDistance(
     moveByDistance(previousPosition, primaryDirection, primaryDistance),
     secondaryDirection,
     secondaryDistance,
   );
+}
+
+function getStraightTilePosition(
+  previousPosition: GridPoint,
+  previousOrientation: LayoutOrientation,
+  currentOrientation: LayoutOrientation,
+  direction: BoardSide,
+): GridPoint {
+  const prevExtent = getTileExtentOnSide(previousOrientation, direction);
+  const currExtent = getTileExtentOnSide(currentOrientation, direction);
+  const distance = (prevExtent + currExtent) / 2;
+  return moveByDistance(previousPosition, direction, distance);
 }
 
 function getBalancedBranchFlow(
@@ -227,10 +242,9 @@ export function getBoardLayout(
         currentDirection = flow.secondary;
       }
 
-      const displayTile = getDisplayTileForDirection(currentDirection, sourceTile);
-      const currentOrientation = getBranchOrientation(currentDirection, displayTile);
-
-      const currentPosition = turningThisTile
+      let displayTile = getDisplayTileForDirection(currentDirection, sourceTile);
+      let currentOrientation = getBranchOrientation(currentDirection, displayTile);
+      let currentPosition = turningThisTile
         ? getTurningTilePosition(
             previousPosition,
             previousOrientation,
@@ -238,12 +252,12 @@ export function getBoardLayout(
             flow.primary,
             flow.secondary,
           )
-        : (() => {
-            const prevExtent = getTileExtentOnSide(previousOrientation, currentDirection);
-            const currExtent = getTileExtentOnSide(currentOrientation, currentDirection);
-            const distance = (prevExtent + currExtent) / 2;
-            return moveByDistance(previousPosition, currentDirection, distance);
-          })();
+        : getStraightTilePosition(
+            previousPosition,
+            previousOrientation,
+            currentOrientation,
+            currentDirection,
+          );
 
       tiles.push({
         id: `${branchSide}-${index}`,
