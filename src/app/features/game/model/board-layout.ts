@@ -120,6 +120,21 @@ function nextFlowDirection(
   return currentDirection === flow.primary ? flow.secondary : flow.primary;
 }
 
+function hasSegmentLimit(
+  currentDirection: BoardSide,
+  flow: { readonly primary: BoardSide; readonly secondary: BoardSide },
+): boolean {
+  const isPrimaryVertical = flow.primary === "north" || flow.primary === "south";
+  const isSecondarySegment = currentDirection === flow.secondary;
+
+  // Regra: o 2o galho que nasce de um galho vertical nao tem limite de pecas.
+  if (isPrimaryVertical && isSecondarySegment) {
+    return false;
+  }
+
+  return true;
+}
+
 function getTurningTilePosition(
   previousPosition: GridPoint,
   previousOrientation: LayoutOrientation,
@@ -221,7 +236,7 @@ export function getBoardLayout(
       let turningThisTile = false;
       let previousDirection = currentDirection;
 
-      if (currentSegmentCount >= maxTilesForDirection(currentDirection)) {
+      if (hasSegmentLimit(currentDirection, flow) && currentSegmentCount >= maxTilesForDirection(currentDirection)) {
         if (isDouble(sourceTile)) {
           currentDirection = previousDirection;
         } else {

@@ -49,6 +49,8 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     private previousTurnKey = "";
     private previousActiveMatch = false;
     private hasQueuedMobileDisplayGesture = false;
+    private isIosViewportSyncEnabled = false;
+    private readonly onViewportResize = () => this.updateIosViewportHeight();
 
     constructor(public match: LocalMatchService) {
         this.startLobbyPolling();
@@ -76,6 +78,7 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     ngOnDestroy(): void {
         this.clearHumanTimer();
         this.clearLobbyPolling();
+        this.disableIosViewportSync();
     }
 
     get playableMoves(): readonly Extract<LegalMove, { kind: "play" }>[] {
@@ -622,6 +625,12 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
             return;
         }
 
+        if (this.isIosWebKitBrowser()) {
+            this.enableIosViewportSync();
+            this.lockLandscapeOrientation();
+            return;
+        }
+
         const request = document.documentElement.requestFullscreen?.bind(document.documentElement);
         if (!request || document.fullscreenElement !== null) {
             this.lockLandscapeOrientation();
@@ -653,6 +662,44 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
 
     private isMobileDisplayViewport(): boolean {
         return window.matchMedia("(max-width: 900px), (max-height: 520px)").matches;
+    }
+
+    private isIosWebKitBrowser(): boolean {
+        const userAgent = window.navigator.userAgent;
+        const isAppleMobile = /iPhone|iPad|iPod/i.test(userAgent);
+        const isTouchMac = /Macintosh/i.test(userAgent) && "ontouchend" in document;
+        return isAppleMobile || isTouchMac;
+    }
+
+    private enableIosViewportSync(): void {
+        if (this.isIosViewportSyncEnabled) {
+            this.updateIosViewportHeight();
+            return;
+        }
+
+        this.isIosViewportSyncEnabled = true;
+        this.updateIosViewportHeight();
+        window.addEventListener("resize", this.onViewportResize, { passive: true });
+        window.addEventListener("orientationchange", this.onViewportResize, { passive: true });
+        window.visualViewport?.addEventListener("resize", this.onViewportResize, { passive: true });
+    }
+
+    private disableIosViewportSync(): void {
+        if (!this.isIosViewportSyncEnabled) {
+            return;
+        }
+
+        this.isIosViewportSyncEnabled = false;
+        window.removeEventListener("resize", this.onViewportResize);
+        window.removeEventListener("orientationchange", this.onViewportResize);
+        window.visualViewport?.removeEventListener("resize", this.onViewportResize);
+        document.documentElement.style.removeProperty("--app-vh");
+    }
+
+    private updateIosViewportHeight(): void {
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        document.documentElement.style.setProperty("--app-vh", `${Math.floor(viewportHeight)}px`);
+        window.scrollTo(0, 1);
     }
 
     private lockLandscapeOrientation(): void {

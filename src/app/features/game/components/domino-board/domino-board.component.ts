@@ -168,9 +168,11 @@ export class DominoBoardComponent {
     }
 
     get canvasShellStyle(): Record<string, string> {
+        const scaledWidth = Math.ceil(this.boardCanvasWidth * this.boardScale);
+        const scaledHeight = Math.ceil(this.boardCanvasHeight * this.boardScale);
         return {
-            width: `${Math.ceil(this.boardCanvasWidth * this.boardScale)}px`,
-            height: `${Math.ceil(this.boardCanvasHeight * this.boardScale)}px`,
+            width: `${scaledWidth + 4}px`,
+            height: `${scaledHeight + 4}px`,
         };
     }
 
