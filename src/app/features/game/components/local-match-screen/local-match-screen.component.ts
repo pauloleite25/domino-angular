@@ -1,7 +1,8 @@
-import { Component, DoCheck, OnDestroy } from "@angular/core";
+import { AfterViewChecked, Component, DoCheck, ElementRef, OnDestroy, ViewChild } from "@angular/core";
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
-import { LocalMatchService, PlayerNames } from "../../services/local-match.service";
+import { LocalMatchService } from "../../services/local-match.service";
+import type { MoveHistoryEntry, PlayerNames, RecentTurnEvent } from "../../services/local-match.service";
 
 function isPlayableMove(move: LegalMove): move is Extract<LegalMove, { kind: "play" }> {
     return move.kind === "play";
@@ -19,12 +20,21 @@ type RoomInfo = {
     readonly availableRoles: readonly PlayerId[];
 };
 
+type FloatingEvent = {
+    readonly id: number;
+    readonly playerId: PlayerId;
+    readonly label: string;
+    readonly kind: "score" | "pass";
+};
+
 @Component({
     selector: "app-local-match-screen",
     templateUrl: "./local-match-screen.component.html",
     styleUrl: "./local-match-screen.component.scss",
 })
-export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
+export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnDestroy {
+    @ViewChild("mobileBottomRow") private mobileBottomRow?: ElementRef<HTMLElement>;
+
     selectedTileKey: string | null = null;
     selectedEnd: BoardSide | null = null;
     draggingTileKey: string | null = null;
@@ -43,11 +53,16 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     turnSecondsLeft = 15;
     hasDismissedMatchModal = false;
     isHistoryOpen = false;
+    floatingEvents: readonly FloatingEvent[] = [];
+    mobileBottomRowHeight: number | null = null;
 
     private timerId: number | null = null;
     private lobbyPollId: number | null = null;
+    private floatingEventTimeouts: number[] = [];
+    private lastRecentEventKey = "";
     private previousTurnKey = "";
     private previousActiveMatch = false;
+    private isMobileBottomRowMeasureQueued = false;
     private hasQueuedMobileDisplayGesture = false;
     private isIosViewportSyncEnabled = false;
     private readonly onViewportResize = () => this.updateIosViewportHeight();
@@ -65,6 +80,7 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
             this.hasQueuedMobileDisplayGesture = false;
         }
         this.previousActiveMatch = hasActiveMatch;
+        this.queueFloatingEvent();
 
         const turnKey = `${this.match.currentPlayer ?? "-"}-${this.match.roundState?.roundNumber ?? 0}-${this.match.isHumanTurn}`;
         if (turnKey === this.previousTurnKey) {
@@ -78,7 +94,16 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     ngOnDestroy(): void {
         this.clearHumanTimer();
         this.clearLobbyPolling();
+        this.clearFloatingEventTimeouts();
         this.disableIosViewportSync();
+    }
+
+    ngAfterViewChecked(): void {
+        this.freezeMobileBottomRowHeight();
+    }
+
+    get recentMoveHistory(): readonly MoveHistoryEntry[] {
+        return this.match.moveHistory.slice(-3);
     }
 
     get playableMoves(): readonly Extract<LegalMove, { kind: "play" }>[] {
@@ -209,6 +234,17 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
 
     playerLabel(player: PlayerId | null): string {
         return this.match.playerLabel(player ?? this.match.currentPlayer ?? "A");
+    }
+
+    playerPositionClass(player: PlayerId): string {
+        return (
+            {
+                A: "south",
+                B: "west",
+                C: "north",
+                D: "east",
+            } satisfies Record<PlayerId, string>
+        )[player];
     }
 
     formatTilesForSummary(tiles: readonly DominoTile[]): string {
@@ -697,6 +733,8 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     }
 
     private updateIosViewportHeight(): void {
+        this.mobileBottomRowHeight = null;
+        this.isMobileBottomRowMeasureQueued = false;
         const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
         document.documentElement.style.setProperty("--app-vh", `${Math.floor(viewportHeight)}px`);
         window.scrollTo(0, 1);
@@ -707,5 +745,66 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
             lock?: (orientation: "landscape") => Promise<void>;
         };
         void orientation.lock?.("landscape").catch(() => undefined);
+    }
+
+    private queueFloatingEvent(): void {
+        const event = this.match.recentEvent;
+        if (!event) {
+            return;
+        }
+
+        const key = this.recentEventKey(event);
+        if (key === this.lastRecentEventKey) {
+            return;
+        }
+
+        this.lastRecentEventKey = key;
+        if (event.type === "play") {
+            return;
+        }
+
+        const floatingEvent: FloatingEvent = {
+            id: Date.now(),
+            playerId: event.playerId,
+            kind: event.type === "pass" ? "pass" : "score",
+            label: event.type === "pass" ? (event.points > 0 ? `Passou +${event.points}` : "Passou") : `+${event.points}`,
+        };
+        this.floatingEvents = [...this.floatingEvents, floatingEvent].slice(-4);
+        const timeoutId = window.setTimeout(() => {
+            this.floatingEvents = this.floatingEvents.filter((item) => item.id !== floatingEvent.id);
+        }, 1300);
+        this.floatingEventTimeouts = [...this.floatingEventTimeouts, timeoutId];
+    }
+
+    private recentEventKey(event: RecentTurnEvent): string {
+        return `${this.match.moveHistory.length}-${event.type}-${event.playerId}-${"points" in event ? event.points : 0}`;
+    }
+
+    private clearFloatingEventTimeouts(): void {
+        for (const timeoutId of this.floatingEventTimeouts) {
+            window.clearTimeout(timeoutId);
+        }
+        this.floatingEventTimeouts = [];
+    }
+
+    private freezeMobileBottomRowHeight(): void {
+        if (this.mobileBottomRowHeight !== null || this.isMobileBottomRowMeasureQueued || !this.mobileBottomRow) {
+            return;
+        }
+
+        this.isMobileBottomRowMeasureQueued = true;
+        queueMicrotask(() => {
+            this.isMobileBottomRowMeasureQueued = false;
+            if (this.mobileBottomRowHeight !== null || !this.mobileBottomRow) {
+                return;
+            }
+
+            const height = Math.ceil(this.mobileBottomRow.nativeElement.getBoundingClientRect().height);
+            if (height <= 0) {
+                return;
+            }
+
+            this.mobileBottomRowHeight = height;
+        });
     }
 }

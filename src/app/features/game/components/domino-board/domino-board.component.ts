@@ -1,10 +1,20 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import {
+    AfterViewInit,
+    ChangeDetectorRef,
+    Component,
+    ElementRef,
+    EventEmitter,
+    Input,
+    OnDestroy,
+    Output,
+    ViewChild,
+} from "@angular/core";
 import { getPlayableEnds } from "../../../../core/domino";
 import type { BoardSide, BoardState, DominoTile, PlayerId, TeamId } from "../../../../core/domino";
 import { getBoardLayout, LayoutTile } from "../../model/board-layout";
 
-const TILE_LONG_SIDE_PX_DESKTOP = 74;
-const TILE_LONG_SIDE_PX_MOBILE = 56;
+const TILE_LONG_SIDE_PX_DESKTOP = 160;
+const TILE_LONG_SIDE_PX_MOBILE = 60;
 const BOARD_EDGE_PADDING_PX_DESKTOP = 92;
 const BOARD_EDGE_PADDING_PX_MOBILE = 51;
 const BOARD_LAYOUT_MAX_X = 6;
@@ -14,6 +24,7 @@ const MIN_BOARD_SCALE_DESKTOP = 0.01;
 const MIN_BOARD_SCALE_MOBILE = 0.01;
 const NEAR_DROP_TOLERANCE_DESKTOP = 1.25;
 const NEAR_DROP_TOLERANCE_MOBILE = 1.65;
+const BOARD_SAFE_INSET_PX = 8;
 
 export type BoardPlayer = {
     readonly id: PlayerId;
@@ -29,7 +40,24 @@ export type BoardPlayer = {
     templateUrl: "./domino-board.component.html",
     styleUrl: "./domino-board.component.scss",
 })
-export class DominoBoardComponent {
+export class DominoBoardComponent implements AfterViewInit, OnDestroy {
+    @ViewChild("canvasViewport")
+    private set canvasViewportRef(viewport: ElementRef<HTMLElement> | undefined) {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = null;
+        this.canvasViewportElement = viewport?.nativeElement ?? null;
+        this.updateMeasuredBoardViewport();
+
+        if (typeof ResizeObserver === "undefined" || this.canvasViewportElement === null) {
+            return;
+        }
+
+        this.resizeObserver = new ResizeObserver(() => {
+            this.updateMeasuredBoardViewport();
+        });
+        this.resizeObserver.observe(this.canvasViewportElement);
+    }
+
     @Input({ required: true }) board!: BoardState;
     @Input() players: readonly BoardPlayer[] = [];
     @Input() nextPlayer: PlayerId | null = null;
@@ -46,6 +74,20 @@ export class DominoBoardComponent {
     @Output() dropOnOpening = new EventEmitter<void>();
 
     readonly sides: readonly BoardSide[] = ["north", "east", "south", "west"];
+    private resizeObserver: ResizeObserver | null = null;
+    private canvasViewportElement: HTMLElement | null = null;
+    private measuredBoardViewportWidth = 0;
+    private measuredBoardViewportHeight = 0;
+
+    constructor(private readonly changeDetector: ChangeDetectorRef) {}
+
+    ngAfterViewInit(): void {
+        this.updateMeasuredBoardViewport();
+    }
+
+    ngOnDestroy(): void {
+        this.resizeObserver?.disconnect();
+    }
 
     get isMobileViewport(): boolean {
         return typeof window !== "undefined" && window.matchMedia("(max-width: 640px), (max-height: 520px)").matches;
@@ -68,6 +110,10 @@ export class DominoBoardComponent {
     }
 
     private get boardViewportWidth(): number {
+        if (this.measuredBoardViewportWidth > 0) {
+            return this.measuredBoardViewportWidth;
+        }
+
         if (typeof window === "undefined") {
             return this.isMobileViewport ? 760 : 1380;
         }
@@ -77,6 +123,10 @@ export class DominoBoardComponent {
     }
 
     private get boardViewportHeight(): number {
+        if (this.measuredBoardViewportHeight > 0) {
+            return this.measuredBoardViewportHeight;
+        }
+
         if (typeof window === "undefined") {
             return this.isMobileViewport ? 520 : 860;
         }
@@ -140,30 +190,46 @@ export class DominoBoardComponent {
 
     get boardCanvasWidth(): number {
         const tileLongSidePx = this.tileLongSidePx;
-        const maxTileX = this.layoutTiles.reduce((maxValue, tile) => Math.max(maxValue, Math.abs(tile.x)), 0);
+        const maxTileX = this.layoutTiles.reduce(
+            (maxValue, tile) =>
+                Math.max(
+                    maxValue,
+                    Math.abs(tile.x) + this.tileHalfExtentUnits(tile.orientation, "east"),
+                ),
+            0,
+        );
         const maxEndX = this.sides.reduce(
             (maxValue, side) => Math.max(maxValue, Math.abs(this.markerPositionsBySide[side].x)),
             0,
         );
         const boardHalfWidth =
-            Math.max(maxTileX, maxEndX) * tileLongSidePx + tileLongSidePx / 2 + this.boardEdgePaddingPx;
+            Math.max(maxTileX, maxEndX) * tileLongSidePx + this.boardEdgePaddingPx;
         return Math.max(this.isMobileViewport ? 420 : 760, Math.ceil(boardHalfWidth * 2));
     }
 
     get boardCanvasHeight(): number {
         const tileLongSidePx = this.tileLongSidePx;
-        const maxTileY = this.layoutTiles.reduce((maxValue, tile) => Math.max(maxValue, Math.abs(tile.y)), 0);
+        const maxTileY = this.layoutTiles.reduce(
+            (maxValue, tile) =>
+                Math.max(
+                    maxValue,
+                    Math.abs(tile.y) + this.tileHalfExtentUnits(tile.orientation, "south"),
+                ),
+            0,
+        );
         const maxEndY = this.sides.reduce(
             (maxValue, side) => Math.max(maxValue, Math.abs(this.markerPositionsBySide[side].y)),
             0,
         );
         const boardHalfHeight =
-            Math.max(maxTileY, maxEndY) * tileLongSidePx + tileLongSidePx / 2 + this.boardEdgePaddingPx;
+            Math.max(maxTileY, maxEndY) * tileLongSidePx + this.boardEdgePaddingPx;
         return Math.max(this.isMobileViewport ? 320 : 520, Math.ceil(boardHalfHeight * 2));
     }
 
     get boardScale(): number {
-        const fitScale = Math.min(this.boardViewportWidth / this.boardCanvasWidth, this.boardViewportHeight / this.boardCanvasHeight);
+        const availableWidth = Math.max(1, this.boardViewportWidth - BOARD_SAFE_INSET_PX * 2);
+        const availableHeight = Math.max(1, this.boardViewportHeight - BOARD_SAFE_INSET_PX * 2);
+        const fitScale = Math.min(availableWidth / this.boardCanvasWidth, availableHeight / this.boardCanvasHeight);
         return Math.max(this.minBoardScale, Math.min(1, fitScale));
     }
 
@@ -197,6 +263,32 @@ export class DominoBoardComponent {
             top: `${top}px`,
             transform: "translate(-50%, -50%)",
         };
+    }
+
+    private tileHalfExtentUnits(orientation: LayoutTile["orientation"], side: BoardSide): number {
+        const isHorizontal = orientation === "horizontal";
+        if (side === "east" || side === "west") {
+            return (isHorizontal ? 1 : 64 / 112) / 2;
+        }
+
+        return (isHorizontal ? 64 / 112 : 1) / 2;
+    }
+
+    private updateMeasuredBoardViewport(): void {
+        if (this.canvasViewportElement === null) {
+            return;
+        }
+
+        const rect = this.canvasViewportElement.getBoundingClientRect();
+        const width = Math.floor(rect.width);
+        const height = Math.floor(rect.height);
+        if (width === this.measuredBoardViewportWidth && height === this.measuredBoardViewportHeight) {
+            return;
+        }
+
+        this.measuredBoardViewportWidth = width;
+        this.measuredBoardViewportHeight = height;
+        this.changeDetector.detectChanges();
     }
 
     getPlayer(playerId: PlayerId): BoardPlayer | null {

@@ -85,6 +85,8 @@ type TurnEvent =
           readonly playerId: PlayerId;
       };
 
+export type RecentTurnEvent = TurnEvent;
+
 export type GaloPopup = {
     readonly id: number;
     readonly playerId: PlayerId;
@@ -148,7 +150,7 @@ export type PlayerView = {
 };
 
 const HUMAN_PLAYER: PlayerId = "A";
-const SIMULATE_ALL_BOTS = false;
+const SIMULATE_ALL_BOTS = true;
 const TURN_ORDER: readonly PlayerId[] = ["A", "B", "C", "D"];
 const BOT_MOVE_DELAY_MS = 2000;
 const GALO_BONUS_POINTS = 50;
@@ -521,7 +523,7 @@ export class LocalMatchService implements OnDestroy {
     }
 
     get canStartNextRound(): boolean {
-        return this.state.pendingNextMatch !== null;
+        return this.state.pendingNextMatch !== null && !this.isMatchOver;
     }
 
     get lastRoundResult(): RoundResult | null {
@@ -538,6 +540,10 @@ export class LocalMatchService implements OnDestroy {
 
     get galoPopup(): GaloPopup | null {
         return this.state.galoPopup;
+    }
+
+    get recentEvent(): RecentTurnEvent | null {
+        return this.state.recentEvent;
     }
 
     get botCountdownLabel(): number | null {
@@ -624,6 +630,7 @@ export class LocalMatchService implements OnDestroy {
         }
 
         this.botActionCountdown = null;
+        this.playSound("shuffle");
         this.setState(createFreshLocalState(this.networkHumanPlayers, this.networkPlayerNames));
     }
 
@@ -637,6 +644,7 @@ export class LocalMatchService implements OnDestroy {
             return;
         }
 
+        this.playSound("shuffle");
         this.setState({
             ...this.state,
             humanPlayers: this.networkHumanPlayers,
@@ -670,6 +678,7 @@ export class LocalMatchService implements OnDestroy {
             return;
         }
 
+        this.playMoveSound(move);
         if (this.isNetworkGuest) {
             void this.postNetworkCommand(move);
             return;
@@ -950,6 +959,7 @@ export class LocalMatchService implements OnDestroy {
             return;
         }
 
+        this.playMoveSound(command.move);
         this.setState(this.advanceWithMove(this.state, command.move));
     }
 
@@ -996,8 +1006,15 @@ export class LocalMatchService implements OnDestroy {
                 bonusScoreOpportunity: canScoreGalo ? GALO_BONUS_POINTS : 0,
             });
             this.botActionCountdown = null;
+            this.playMoveSound(move);
             this.setState(this.advanceWithMove(this.state, move));
         }, BOT_MOVE_DELAY_MS);
+    }
+
+    private playMoveSound(move: LegalMove): void {
+        if (move.kind === "play") {
+            this.playSound("tile");
+        }
     }
 
     private advanceWithMove(state: ActiveLocalMatchState, move: LegalMove): ActiveLocalMatchState {
@@ -1049,8 +1066,12 @@ export class LocalMatchService implements OnDestroy {
                     team,
                     points: galoPoints,
                 };
+                this.playSound("galo");
             }
             scoreAfterMove = addPoints(scoreAfterMove, team, totalPlayPoints);
+            if (totalPlayPoints > 0 && galoPoints === 0) {
+                this.playSound("point");
+            }
             recentEvent =
                 totalPlayPoints > 0
                     ? { type: "score", playerId: currentPlayer, team, points: totalPlayPoints }
@@ -1074,6 +1095,9 @@ export class LocalMatchService implements OnDestroy {
             const penaltyPoints = isFirstPassAfterPlay ? getPassPenalty() : 0;
             const penaltyTeam = isFirstPassAfterPlay ? getPassPenaltyAwardedTeam(currentPlayer) : null;
             scoreAfterMove = addPoints(scoreAfterMove, penaltyTeam, penaltyPoints);
+            if (penaltyPoints > 0) {
+                this.playSound("point");
+            }
 
             if (canTrackGalo) {
                 const existingPassers =
@@ -1243,5 +1267,23 @@ export class LocalMatchService implements OnDestroy {
         }
 
         return history.slice(0, index + 1);
+    }
+
+    private playSound(kind: "tile" | "shuffle" | "point" | "galo"): void {
+        if (typeof Audio === "undefined") {
+            return;
+        }
+
+        const sourceByKind: Record<typeof kind, string> = {
+            tile: "assets/sons/jogando_new.mp3",
+            shuffle: "assets/sons/embaralhando.mp3.mp3",
+            point: "assets/sons/ponto coin.mp3.mp3",
+            galo: "assets/sons/galo.mp3.mp3",
+        };
+        const audio = new Audio(sourceByKind[kind]);
+        audio.volume = kind === "shuffle" ? 0.55 : 0.75;
+        void audio.play().catch(() => {
+            // Alguns navegadores bloqueiam audio antes da primeira interacao.
+        });
     }
 }

@@ -15,6 +15,7 @@
     <div *ngIf="openingTile" class="board-area">
         <div class="canvas-frame">
             <div
+                #canvasViewport
                 class="canvas-viewport"
                 (dragover)="handleDragOver($event)"
                 (drop)="handleBoardDrop($event)">
@@ -63,16 +64,16 @@
 
         <div class="table-player-labels">
             <span *ngIf="getPlayer('C') as player" class="table-player north" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
-                {{ player.name }}
+                {{ player.name }} · {{ player.handCount }}
             </span>
             <span *ngIf="getPlayer('B') as player" class="table-player west" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
-                {{ player.name }}
+                {{ player.name }} · {{ player.handCount }}
             </span>
             <span *ngIf="getPlayer('D') as player" class="table-player east" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
-                {{ player.name }}
+                {{ player.name }} · {{ player.handCount }}
             </span>
             <span *ngIf="getPlayer('A') as player" class="table-player south" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
-                {{ player.name }}
+                {{ player.name }} · {{ player.handCount }}
             </span>
         </div>
     </div>

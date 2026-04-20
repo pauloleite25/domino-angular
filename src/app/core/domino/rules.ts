@@ -40,11 +40,13 @@ export function createBoardWithOpeningCarroca(opening: DominoTile): BoardState {
 }
 
 export function getPrimarySidesByStarter(starter: PlayerId): readonly BoardSide[] {
-  return starter === "A" || starter === "C" ? ["north", "south"] : ["west", "east"];
+  void starter;
+  return ["east", "west"];
 }
 
 export function getSecondarySidesByStarter(starter: PlayerId): readonly BoardSide[] {
-  return starter === "A" || starter === "C" ? ["west", "east"] : ["north", "south"];
+  void starter;
+  return ["north", "south"];
 }
 
 export function isSecondaryAxisUnlocked(board: BoardState, starter: PlayerId): boolean {
@@ -66,6 +68,12 @@ function isPlayableByAxis(
 }
 
 export function getPlayableEnds(board: BoardState, starter?: PlayerId): readonly BoardEnd[] {
+  if (board.openingCarroca !== null && board.placedTilesCount === 1) {
+    return [board.ends.east, board.ends.west].filter(
+      (end) => end.isOpen && end.openValue !== null,
+    );
+  }
+
   return BOARD_SIDES.map((side) => board.ends[side]).filter(
     (end) =>
       end.isOpen &&

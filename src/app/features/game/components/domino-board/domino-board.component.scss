@@ -97,7 +97,10 @@ h2 {
     box-shadow:
         inset 0 0 0 1px rgb(255 209 102 / 16%),
         0 18px 38px rgb(0 0 0 / 34%);
-    padding: 9.5% 5.5% 11%;
+    padding:
+        clamp(12px, 4.2cqh, 32px)
+        clamp(24px, 3.2cqw, 64px)
+        clamp(12px, 4.2cqh, 32px);
 }
 
 .canvas-viewport {
@@ -105,6 +108,7 @@ h2 {
     display: flex;
     min-height: 0;
     width: 100%;
+    height: 100%;
     align-items: center;
     justify-content: center;
     overflow: visible;
@@ -268,7 +272,10 @@ h2 {
     }
 
     .canvas-frame {
-        padding: 9.5% 5.5% 11%;
+        padding:
+            clamp(8px, 4cqh, 22px)
+            clamp(16px, 3cqw, 42px)
+            clamp(8px, 4cqh, 22px);
     }
 
     .canvas-viewport {

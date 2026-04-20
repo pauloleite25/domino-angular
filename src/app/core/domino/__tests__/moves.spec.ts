@@ -34,6 +34,7 @@ function createBoardWithSingleOpenSide(side: BoardSide): RoundState["board"] {
 
   return {
     ...board,
+    placedTilesCount: 2,
     ends: {
       north: {
         ...board.ends.north,
@@ -108,10 +109,34 @@ describe("modelagem da mesa e jogadas validas", () => {
     expect(moves[0]).toMatchObject({ kind: "play", phase: "end", endSide: "west" });
   });
 
+  it("na segunda jogada da rodada permite somente leste ou oeste", () => {
+    const state = createState(createBoardWithOpeningCarroca({ left: 6, right: 6 }), [
+      { left: 6, right: 1 },
+    ]);
+    const moves = getLegalMoves(state, "A").filter(
+      (move) => move.kind === "play" && move.phase === "end",
+    );
+
+    expect(moves).toHaveLength(2);
+    expect(moves).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ endSide: "east" }),
+        expect.objectContaining({ endSide: "west" }),
+      ]),
+    );
+    expect(moves).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ endSide: "north" }),
+        expect.objectContaining({ endSide: "south" }),
+      ]),
+    );
+  });
+
   it("mantem pontas abertas apos expansoes dos 4 lados iniciais", () => {
     const board = createBoardWithOpeningCarroca({ left: 6, right: 6 });
     const expandedBoard: RoundState["board"] = {
       ...board,
+      placedTilesCount: 8,
       ends: {
         north: {
           ...board.ends.north,
@@ -182,11 +207,12 @@ describe("modelagem da mesa e jogadas validas", () => {
     expect(getLegalMoves(state, "A").some((move) => move.kind === "pass")).toBe(false);
   });
 
-  it("bloqueia eixo secundario ate os dois lados do eixo inicial terem ao menos uma peca", () => {
+  it("bloqueia norte e sul ate leste e oeste terem ao menos uma peca", () => {
     const board = createBoardWithOpeningCarroca({ left: 6, right: 6 });
     const state = createState(
       {
         ...board,
+        placedTilesCount: 3,
         ends: {
           north: {
             ...board.ends.north,
@@ -205,7 +231,7 @@ describe("modelagem da mesa e jogadas validas", () => {
           east: {
             ...board.ends.east,
             openValue: 6,
-            branchLength: 0,
+            branchLength: 1,
             tipIsDouble: true,
             isOpen: true,
           },
@@ -226,6 +252,59 @@ describe("modelagem da mesa e jogadas validas", () => {
     );
 
     expect(endMoves).toHaveLength(1);
-    expect(endMoves[0]).toMatchObject({ endSide: "south" });
+    expect(endMoves[0]).toMatchObject({ endSide: "west" });
+  });
+
+  it("libera norte e sul depois que leste e oeste ja nasceram", () => {
+    const board = createBoardWithOpeningCarroca({ left: 6, right: 6 });
+    const state = createState(
+      {
+        ...board,
+        placedTilesCount: 3,
+        ends: {
+          north: {
+            ...board.ends.north,
+            openValue: 6,
+            branchLength: 0,
+            tipIsDouble: true,
+            isOpen: true,
+          },
+          south: {
+            ...board.ends.south,
+            openValue: 6,
+            branchLength: 0,
+            tipIsDouble: true,
+            isOpen: true,
+          },
+          east: {
+            ...board.ends.east,
+            openValue: 1,
+            branchLength: 1,
+            tipIsDouble: false,
+            isOpen: true,
+          },
+          west: {
+            ...board.ends.west,
+            openValue: 2,
+            branchLength: 1,
+            tipIsDouble: false,
+            isOpen: true,
+          },
+        },
+      },
+      [{ left: 6, right: 3 }],
+    );
+
+    const endMoves = getLegalMoves(state, "A").filter(
+      (move) => move.kind === "play" && move.phase === "end",
+    );
+
+    expect(endMoves).toHaveLength(2);
+    expect(endMoves).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ endSide: "north" }),
+        expect.objectContaining({ endSide: "south" }),
+      ]),
+    );
   });
 });

@@ -510,6 +510,10 @@
     display: none;
 }
 
+.mobile-recent-history {
+    display: none;
+}
+
 .mobile-bottom-row {
     display: block;
     min-width: 0;
@@ -693,7 +697,78 @@
 
 .history-modal-body {
     min-height: 260px;
-    overflow: hidden;
+    max-height: min(68dvh, 560px);
+    overflow-y: auto;
+}
+
+.history-modal-body app-move-history {
+    display: block;
+    height: min(68dvh, 560px);
+}
+
+.floating-event {
+    position: fixed;
+    z-index: 24;
+    border: 1px solid rgb(255 209 102 / 70%);
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 18%) 0%, transparent 72%),
+        #123f32;
+    box-shadow: 0 10px 22px rgb(0 0 0 / 32%);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0;
+    padding: 7px 10px;
+    pointer-events: none;
+    text-shadow: 0 1px 0 rgb(0 0 0 / 38%);
+    animation: float-to-score 1.25s ease-in forwards;
+}
+
+.floating-event.pass {
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 18%) 0%, transparent 72%),
+        #5f3320;
+}
+
+.floating-event.north {
+    left: 50%;
+    top: 8%;
+    transform: translateX(-50%);
+}
+
+.floating-event.south {
+    left: 50%;
+    bottom: 22%;
+    transform: translateX(-50%);
+}
+
+.floating-event.west {
+    left: 7%;
+    top: 48%;
+}
+
+.floating-event.east {
+    right: 7%;
+    top: 48%;
+}
+
+@keyframes float-to-score {
+    0% {
+        opacity: 0;
+        scale: 0.88;
+    }
+
+    16% {
+        opacity: 1;
+        scale: 1;
+    }
+
+    100% {
+        opacity: 0;
+        translate: 0 18vh;
+        scale: 0.78;
+    }
 }
 
 .rotate-phone-overlay {
@@ -802,7 +877,7 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 53%) minmax(0, 29%) minmax(0, 18%);
+        grid-template-columns: minmax(0, 1fr) 96px 212px;
         align-items: stretch;
         gap: 4px;
     }
@@ -827,13 +902,63 @@
 
     .mobile-round-actions {
         display: flex;
+        grid-column: 3;
         align-items: stretch;
         flex-wrap: nowrap;
         gap: 3px;
     }
 
+    .mobile-round-actions button {
+        flex: 0 0 52px;
+    }
+
+    .mobile-recent-history {
+        display: flex;
+        min-width: 0;
+        max-width: 120px;
+        flex: 0 1 min(120px, calc(100% - 91px));
+        height: 100%;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid rgb(255 209 102 / 24%);
+        border-radius: 6px;
+        background: rgb(18 27 24 / 72%);
+        color: #fff2c7;
+        font-size: 9px;
+        line-height: 1.15;
+        padding: 3px 6px;
+    }
+
+    .mobile-round-actions button {
+        flex: 0 0 52px;
+    }
+
+    .recent-line {
+        display: flex;
+        min-width: 0;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    .recent-line span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .recent-line strong {
+        color: #7df3bd;
+        flex: none;
+    }
+
+    .recent-empty {
+        color: #d8ebe4;
+    }
+
     .mobile-round-actions .mobile-new-match {
         display: block;
+        flex: 0 0 88px;
     }
 
     .mobile-details {
@@ -903,7 +1028,7 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 52%) minmax(0, 30%) minmax(0, 18%);
+        grid-template-columns: minmax(0, 1fr) 96px 212px;
         align-items: stretch;
         gap: 3px;
     }
@@ -912,6 +1037,24 @@
     .mobile-score-strip {
         display: block;
         min-width: 0;
+    }
+
+    .mobile-recent-history {
+        display: flex;
+        min-width: 0;
+        max-width: 120px;
+        flex: 0 1 min(120px, calc(100% - 91px));
+        height: 100%;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+        border: 1px solid rgb(255 209 102 / 24%);
+        border-radius: 6px;
+        background: rgb(18 27 24 / 72%);
+        color: #fff2c7;
+        font-size: 9px;
+        line-height: 1.15;
+        padding: 3px 6px;
     }
 
     .pass-box {
@@ -996,7 +1139,7 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 51%) minmax(0, 31%) minmax(0, 18%);
+        grid-template-columns: minmax(0, 1fr) 96px 212px;
         align-items: stretch;
         gap: 3px;
     }

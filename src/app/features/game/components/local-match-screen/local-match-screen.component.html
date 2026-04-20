@@ -198,7 +198,12 @@
                     <button type="button" (click)="handlePassTurn()">Passar</button>
                 </div>
 
-                <div class="mobile-bottom-row">
+                <div
+                    #mobileBottomRow
+                    class="mobile-bottom-row"
+                    [style.height.px]="mobileBottomRowHeight"
+                    [style.min-height.px]="mobileBottomRowHeight"
+                    [style.max-height.px]="mobileBottomRowHeight">
                     <div class="hand-slot">
                         <app-player-hand
                             [hand]="match.humanHand"
@@ -221,11 +226,16 @@
                     </div>
 
                     <div class="mobile-round-actions">
+                        <div class="mobile-recent-history">
+                            <div *ngIf="recentMoveHistory.length === 0" class="recent-empty">Sem jogadas</div>
+                            <div *ngFor="let item of recentMoveHistory" class="recent-line">
+                                <span>{{ item.description }}</span>
+                                <strong *ngIf="item.points > 0">+{{ item.points }}</strong>
+                            </div>
+                        </div>
+
                         <button *ngIf="match.canStartNextRound" type="button" class="primary small" (click)="match.startNextRound()">
                             Proxima
-                        </button>
-                        <button type="button" class="secondary small history-action" (click)="openMoveHistory()">
-                            Historico
                         </button>
                         <button *ngIf="!match.canStartNextRound" type="button" class="mobile-new-match" (click)="handleStartNewMatch()">
                             Nova
@@ -316,6 +326,18 @@
                 </p>
                 <button type="button" class="primary small" (click)="match.dismissGaloPopup()">Fechar</button>
             </div>
+        </div>
+
+        <div
+            *ngFor="let event of floatingEvents"
+            class="floating-event"
+            [class.score]="event.kind === 'score'"
+            [class.pass]="event.kind === 'pass'"
+            [class.north]="playerPositionClass(event.playerId) === 'north'"
+            [class.south]="playerPositionClass(event.playerId) === 'south'"
+            [class.west]="playerPositionClass(event.playerId) === 'west'"
+            [class.east]="playerPositionClass(event.playerId) === 'east'">
+            {{ event.label }}
         </div>
 
         <div *ngIf="isHistoryOpen" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="history-title">
