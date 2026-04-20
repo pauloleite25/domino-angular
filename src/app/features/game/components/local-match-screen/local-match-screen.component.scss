@@ -877,7 +877,7 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 96px 212px;
+        grid-template-columns: minmax(0, 1fr) 96px min(392px, 48vw);
         align-items: stretch;
         gap: 4px;
     }
@@ -915,8 +915,8 @@
     .mobile-recent-history {
         display: flex;
         min-width: 0;
-        max-width: 120px;
-        flex: 0 1 min(120px, calc(100% - 91px));
+        max-width: 300px;
+        flex: 0 1 min(300px, calc(100% - 91px));
         height: 100%;
         flex-direction: column;
         justify-content: center;
@@ -1028,7 +1028,7 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 96px 212px;
+        grid-template-columns: minmax(0, 1fr) 96px min(392px, 48vw);
         align-items: stretch;
         gap: 3px;
     }
@@ -1042,8 +1042,8 @@
     .mobile-recent-history {
         display: flex;
         min-width: 0;
-        max-width: 120px;
-        flex: 0 1 min(120px, calc(100% - 91px));
+        max-width: 300px;
+        flex: 0 1 min(300px, calc(100% - 91px));
         height: 100%;
         flex-direction: column;
         justify-content: center;
@@ -1139,7 +1139,7 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 96px 212px;
+        grid-template-columns: minmax(0, 1fr) 96px min(392px, 48vw);
         align-items: stretch;
         gap: 3px;
     }

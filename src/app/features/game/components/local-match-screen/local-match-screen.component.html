@@ -234,7 +234,7 @@
                             </div>
                         </div>
 
-                        <button *ngIf="match.canStartNextRound" type="button" class="primary small" (click)="match.startNextRound()">
+                        <button *ngIf="match.canStartNextRound" type="button" class="mobile-new-match" (click)="match.startNextRound()">
                             Proxima
                         </button>
                         <button *ngIf="!match.canStartNextRound" type="button" class="mobile-new-match" (click)="handleStartNewMatch()">

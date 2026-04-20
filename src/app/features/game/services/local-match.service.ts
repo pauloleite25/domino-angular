@@ -150,7 +150,7 @@ export type PlayerView = {
 };
 
 const HUMAN_PLAYER: PlayerId = "A";
-const SIMULATE_ALL_BOTS = true;
+const SIMULATE_ALL_BOTS = false;
 const TURN_ORDER: readonly PlayerId[] = ["A", "B", "C", "D"];
 const BOT_MOVE_DELAY_MS = 2000;
 const GALO_BONUS_POINTS = 50;
