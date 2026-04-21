@@ -243,6 +243,16 @@
                     </div>
                 </div>
 
+                <div class="reaction-bar">
+                    <button
+                        *ngFor="let reaction of reactionOptions"
+                        type="button"
+                        class="reaction-chip"
+                        (click)="handleSendReaction(reaction)">
+                        {{ reaction }}
+                    </button>
+                </div>
+
                 <details class="mobile-details">
                     <summary>Ver turno e historico</summary>
                     <div class="details-content">
@@ -333,6 +343,7 @@
             class="floating-event"
             [class.score]="event.kind === 'score'"
             [class.pass]="event.kind === 'pass'"
+            [class.reaction]="event.kind === 'reaction'"
             [class.north]="playerPositionClass(event.playerId) === 'north'"
             [class.south]="playerPositionClass(event.playerId) === 'south'"
             [class.west]="playerPositionClass(event.playerId) === 'west'"

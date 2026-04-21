@@ -647,6 +647,39 @@
     background: #17251f;
 }
 
+.reaction-bar {
+    position: fixed;
+    left: 12px;
+    bottom: 12px;
+    z-index: 16;
+    display: flex;
+    width: max-content;
+    height: auto;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+}
+
+.reaction-chip {
+    border: 1px solid rgb(255 209 102 / 46%);
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 14%) 0%, transparent 100%),
+        rgb(18 27 24 / 88%);
+    box-shadow: 0 8px 18px rgb(0 0 0 / 26%);
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 8px 9px;
+}
+
+.reaction-chip:hover {
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 18%) 0%, transparent 100%),
+        #173128;
+}
+
 .galo-overlay {
     position: fixed;
     inset: 0;
@@ -729,6 +762,16 @@
     background:
         linear-gradient(180deg, rgb(255 255 255 / 18%) 0%, transparent 72%),
         #5f3320;
+}
+
+.floating-event.reaction {
+    border-color: rgb(255 255 255 / 36%);
+    background:
+        linear-gradient(180deg, rgb(255 255 255 / 18%) 0%, transparent 72%),
+        #1d2735;
+    font-size: 30px;
+    line-height: 1;
+    padding: 8px 10px;
 }
 
 .floating-event.north {
@@ -961,6 +1004,19 @@
         flex: 0 0 88px;
     }
 
+    .reaction-bar {
+        left: 8px;
+        top: 8px;
+        right: auto;
+        bottom: auto;
+        gap: 4px;
+    }
+
+    .reaction-chip {
+        font-size: 16px;
+        padding: 6px 7px;
+    }
+
     .mobile-details {
         display: block;
     }
@@ -1073,6 +1129,19 @@
         max-height: 65dvh;
     }
 
+    .reaction-bar {
+        left: 8px;
+        top: 8px;
+        right: auto;
+        bottom: auto;
+        gap: 4px;
+    }
+
+    .reaction-chip {
+        font-size: 16px;
+        padding: 6px 7px;
+    }
+
     .mobile-details summary {
         font-size: 11px;
     }
@@ -1155,6 +1224,13 @@
 
     .new-match-quiet {
         display: none;
+    }
+
+    .reaction-bar {
+        left: 8px;
+        top: 8px;
+        right: auto;
+        bottom: auto;
     }
 }
 .room-grid.single {

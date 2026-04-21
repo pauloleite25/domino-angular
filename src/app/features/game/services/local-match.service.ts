@@ -87,6 +87,12 @@ type TurnEvent =
 
 export type RecentTurnEvent = TurnEvent;
 
+export type RecentReaction = {
+    readonly id: number;
+    readonly playerId: PlayerId;
+    readonly emoji: string;
+};
+
 export type GaloPopup = {
     readonly id: number;
     readonly playerId: PlayerId;
@@ -109,6 +115,7 @@ type LocalMatchState = {
     readonly lastRoundResult: RoundResult | null;
     readonly roundEndSummary: RoundEndSummary | null;
     readonly recentEvent: TurnEvent | null;
+    readonly recentReaction: RecentReaction | null;
     readonly galoPopup: GaloPopup | null;
 };
 
@@ -126,11 +133,19 @@ type NetworkConfig = {
     readonly apiBase: string;
 };
 
-type NetworkCommand = {
-    readonly id: number;
-    readonly playerId: PlayerId;
-    readonly move: LegalMove;
-};
+type NetworkCommand =
+    | {
+          readonly id: number;
+          readonly playerId: PlayerId;
+          readonly action?: "move";
+          readonly move: LegalMove;
+      }
+    | {
+          readonly id: number;
+          readonly playerId: PlayerId;
+          readonly action: "reaction";
+          readonly emoji: string;
+      };
 
 type NetworkRoomPayload = {
     readonly exists?: boolean;
@@ -376,6 +391,7 @@ function buildInitialLocalState(): LocalMatchState {
         lastRoundResult: null,
         roundEndSummary: null,
         recentEvent: null,
+        recentReaction: null,
         galoPopup: null,
     };
 }
@@ -397,6 +413,7 @@ function createFreshLocalState(humanPlayers: readonly PlayerId[], playerNames: P
         lastRoundResult: null,
         roundEndSummary: null,
         recentEvent: null,
+        recentReaction: null,
         galoPopup: null,
     };
 }
@@ -546,6 +563,10 @@ export class LocalMatchService implements OnDestroy {
         return this.state.recentEvent;
     }
 
+    get recentReaction(): RecentReaction | null {
+        return this.state.recentReaction;
+    }
+
     get botCountdownLabel(): number | null {
         return this.isBotTurn ? (this.botActionCountdown ?? BOT_MOVE_DELAY_MS / 1000) : null;
     }
@@ -659,8 +680,22 @@ export class LocalMatchService implements OnDestroy {
             lastRoundResult: null,
             roundEndSummary: null,
             recentEvent: null,
+            recentReaction: null,
             galoPopup: null,
         });
+    }
+
+    sendReaction(emoji: string): void {
+        if (!this.hasMatch || !emoji.trim()) {
+            return;
+        }
+
+        if (this.isNetworkGuest) {
+            void this.postNetworkReaction(emoji);
+            return;
+        }
+
+        this.setState(this.withReaction(this.state, this.humanPlayer, emoji));
     }
 
     playHumanMove(move: LegalMove): void {
@@ -932,6 +967,22 @@ export class LocalMatchService implements OnDestroy {
         });
     }
 
+    private async postNetworkReaction(emoji: string): Promise<void> {
+        if (!this.networkConfig || this.networkConfig.isHost) {
+            return;
+        }
+
+        await fetch(`${this.networkConfig.apiBase}/rooms/${this.networkConfig.roomId}/commands`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                playerId: this.humanPlayer,
+                action: "reaction",
+                emoji,
+            }),
+        });
+    }
+
     private async pollNetworkCommands(): Promise<void> {
         if (!this.networkConfig?.isHost) {
             return;
@@ -954,7 +1005,16 @@ export class LocalMatchService implements OnDestroy {
     }
 
     private applyNetworkCommand(command: NetworkCommand): void {
-        if (!isActiveState(this.state) || command.playerId === "A") {
+        if (!isActiveState(this.state)) {
+            return;
+        }
+
+        if (command.action === "reaction") {
+            this.setState(this.withReaction(this.state, command.playerId, command.emoji));
+            return;
+        }
+
+        if (command.playerId === "A") {
             return;
         }
 
@@ -1230,6 +1290,7 @@ export class LocalMatchService implements OnDestroy {
                 lastRoundResult: adjustedRoundResult,
                 roundEndSummary: getRoundEndSummary(roundAfterMove, adjustedRoundResult),
                 recentEvent,
+                recentReaction: state.recentReaction,
                 galoPopup: galoPopupAfterMove,
             };
         }
@@ -1257,7 +1318,19 @@ export class LocalMatchService implements OnDestroy {
             lastRoundResult: null,
             roundEndSummary: null,
             recentEvent,
+            recentReaction: state.recentReaction,
             galoPopup: galoPopupAfterMove,
+        };
+    }
+
+    private withReaction(state: LocalMatchState, playerId: PlayerId, emoji: string): LocalMatchState {
+        return {
+            ...state,
+            recentReaction: {
+                id: Date.now(),
+                playerId,
+                emoji: emoji.slice(0, 8),
+            },
         };
     }
 

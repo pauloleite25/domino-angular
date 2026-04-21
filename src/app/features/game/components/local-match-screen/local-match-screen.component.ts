@@ -2,7 +2,7 @@ import { AfterViewChecked, Component, DoCheck, ElementRef, OnDestroy, ViewChild 
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
 import { LocalMatchService } from "../../services/local-match.service";
-import type { MoveHistoryEntry, PlayerNames, RecentTurnEvent } from "../../services/local-match.service";
+import type { MoveHistoryEntry, PlayerNames, RecentReaction, RecentTurnEvent } from "../../services/local-match.service";
 
 function isPlayableMove(move: LegalMove): move is Extract<LegalMove, { kind: "play" }> {
     return move.kind === "play";
@@ -24,7 +24,7 @@ type FloatingEvent = {
     readonly id: number;
     readonly playerId: PlayerId;
     readonly label: string;
-    readonly kind: "score" | "pass";
+    readonly kind: "score" | "pass" | "reaction";
 };
 
 @Component({
@@ -33,6 +33,8 @@ type FloatingEvent = {
     styleUrl: "./local-match-screen.component.scss",
 })
 export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnDestroy {
+    readonly reactionOptions = ["😀", "😂", "😮", "👏"];
+
     @ViewChild("mobileBottomRow") private mobileBottomRow?: ElementRef<HTMLElement>;
 
     selectedTileKey: string | null = null;
@@ -60,6 +62,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     private lobbyPollId: number | null = null;
     private floatingEventTimeouts: number[] = [];
     private lastRecentEventKey = "";
+    private lastReactionKey = "";
     private previousTurnKey = "";
     private previousActiveMatch = false;
     private isMobileBottomRowMeasureQueued = false;
@@ -81,6 +84,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         }
         this.previousActiveMatch = hasActiveMatch;
         this.queueFloatingEvent();
+        this.queueReactionEvent();
 
         const turnKey = `${this.match.currentPlayer ?? "-"}-${this.match.roundState?.roundNumber ?? 0}-${this.match.isHumanTurn}`;
         if (turnKey === this.previousTurnKey) {
@@ -361,6 +365,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
         this.match.playHumanMove(this.humanPassMove);
         this.clearSelection();
+    }
+
+    handleSendReaction(emoji: string): void {
+        this.match.sendReaction(emoji);
     }
 
     async handleStartNewMatch(): Promise<void> {
@@ -784,8 +792,37 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.floatingEventTimeouts = [...this.floatingEventTimeouts, timeoutId];
     }
 
+    private queueReactionEvent(): void {
+        const reaction = this.match.recentReaction;
+        if (!reaction) {
+            return;
+        }
+
+        const key = this.recentReactionKey(reaction);
+        if (key === this.lastReactionKey) {
+            return;
+        }
+
+        this.lastReactionKey = key;
+        const floatingEvent: FloatingEvent = {
+            id: reaction.id,
+            playerId: reaction.playerId,
+            kind: "reaction",
+            label: reaction.emoji,
+        };
+        this.floatingEvents = [...this.floatingEvents, floatingEvent].slice(-5);
+        const timeoutId = window.setTimeout(() => {
+            this.floatingEvents = this.floatingEvents.filter((item) => item.id !== floatingEvent.id);
+        }, 1400);
+        this.floatingEventTimeouts = [...this.floatingEventTimeouts, timeoutId];
+    }
+
     private recentEventKey(event: RecentTurnEvent): string {
         return `${this.match.moveHistory.length}-${event.type}-${event.playerId}-${"points" in event ? event.points : 0}`;
+    }
+
+    private recentReactionKey(reaction: RecentReaction): string {
+        return `${reaction.id}-${reaction.playerId}-${reaction.emoji}`;
     }
 
     private clearFloatingEventTimeouts(): void {
