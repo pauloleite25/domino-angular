@@ -102,7 +102,8 @@ export function getBlockedRoundResult(state: RoundState): BlockedRoundResult {
   }
 
   const winnerTeam: TeamId = acTotal < bdTotal ? "AC" : "BD";
-  const points = roundDownToNearestFive(Math.abs(acTotal - bdTotal));
+  const loserTotal = winnerTeam === "AC" ? bdTotal : acTotal;
+  const points = roundDownToNearestFive(loserTotal);
 
   return {
     winnerTeam,

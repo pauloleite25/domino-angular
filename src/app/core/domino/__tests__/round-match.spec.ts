@@ -78,7 +78,7 @@ describe("round + match", () => {
       reason: "blocked",
       winnerTeam: "AC",
       winnerPlayer: null,
-      points: 5,
+      points: 10,
     });
   });
 

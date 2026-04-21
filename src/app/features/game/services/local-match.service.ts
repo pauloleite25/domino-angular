@@ -795,6 +795,19 @@ export class LocalMatchService implements OnDestroy {
         return playerId === this.humanPlayer ? "Voce" : playerId;
     }
 
+    private getHistoryPlayerLabel(playerId: PlayerId): string {
+        if (!this.isHumanPlayer(playerId)) {
+            return playerId;
+        }
+
+        const configuredName = this.networkPlayerNames[playerId]?.trim() ?? this.state.playerNames[playerId]?.trim() ?? "";
+        if (configuredName && !isPlaceholderPlayerName(playerId, configuredName)) {
+            return configuredName;
+        }
+
+        return playerId === this.humanPlayer ? "Voce" : playerId;
+    }
+
     private isHumanPlayer(playerId: PlayerId): boolean {
         if (this.networkConfig !== null) {
             return this.networkHumanPlayers.includes(playerId);
@@ -1080,7 +1093,7 @@ export class LocalMatchService implements OnDestroy {
                 id: adjustedPreviousHistory.length + 1,
                 roundNumber: match.currentRound.roundNumber,
                 playerId: currentPlayer,
-                description: `${currentPlayer} jogou ${formatTileForHistory(playedTileForHistory ?? move.piece)}${galoPoints > 0 ? " (galo +50)" : ""}`,
+                description: `${this.getHistoryPlayerLabel(currentPlayer)} jogou ${formatTileForHistory(playedTileForHistory ?? move.piece)}${galoPoints > 0 ? " (galo +50)" : ""}`,
                 points: totalPlayPoints,
             };
             lastPlayedPlayerAfterMove = currentPlayer;
@@ -1136,8 +1149,8 @@ export class LocalMatchService implements OnDestroy {
                 playerId: currentPlayer,
                 description:
                     penaltyPoints > 0
-                        ? `${currentPlayer} passou (+${penaltyPoints} para ${penaltyTeam})`
-                        : `${currentPlayer} passou (sem pontuacao em passe consecutivo)`,
+                        ? `${this.getHistoryPlayerLabel(currentPlayer)} passou (+${penaltyPoints} para ${penaltyTeam})`
+                        : `${this.getHistoryPlayerLabel(currentPlayer)} passou (sem pontuacao em passe consecutivo)`,
                 points: penaltyPoints,
             };
         }

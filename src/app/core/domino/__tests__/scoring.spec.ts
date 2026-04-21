@@ -111,10 +111,10 @@ describe("scoring da engine", () => {
 
     // AC = (6+5) + (0+2) = 13
     // BD = (1+1+3+3) + (6+6+4+5) = 29
-    // Diferença = 16 -> 15 para AC.
+    // Equipe com menos pontos vence e recebe os pontos da dupla adversaria: 29 -> 25 para AC.
     expect(getBlockedRoundResult(state)).toEqual({
       winnerTeam: "AC",
-      points: 15,
+      points: 25,
       totals: {
         AC: 13,
         BD: 29,
