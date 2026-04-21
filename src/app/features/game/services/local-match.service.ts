@@ -31,6 +31,7 @@ import type {
 
 export type BoardBranches = Record<BoardSide, readonly DominoTile[]>;
 export type PlayerNames = Partial<Record<PlayerId, string>>;
+export type NetworkRole = PlayerId | "spectator";
 
 export type MoveHistoryEntry = {
     readonly id: number;
@@ -127,7 +128,7 @@ type ActiveLocalMatchState = Omit<LocalMatchState, "match" | "currentPlayer"> & 
 
 type NetworkConfig = {
     readonly roomId: string;
-    readonly role: PlayerId;
+    readonly role: NetworkRole;
     readonly humanPlayers: readonly PlayerId[];
     readonly playerNames: PlayerNames;
     readonly isHost: boolean;
@@ -512,16 +513,28 @@ export class LocalMatchService implements OnDestroy {
     }
 
     get humanHand(): readonly DominoTile[] {
+        if (this.isSpectator) {
+            return [];
+        }
+
         return this.state.match?.currentRound.hands[this.humanPlayer] ?? [];
     }
 
     get humanLegalMoves(): readonly LegalMove[] {
+        if (this.isSpectator) {
+            return [];
+        }
+
         return this.state.match && !this.isRoundOver
             ? getLegalMoves(this.state.match.currentRound, this.humanPlayer)
             : [];
     }
 
     get isHumanTurn(): boolean {
+        if (this.isSpectator) {
+            return false;
+        }
+
         return !SIMULATE_ALL_BOTS && this.state.currentPlayer === this.humanPlayer && this.hasMatch && !this.isMatchOver && !this.isRoundOver;
     }
 
@@ -600,11 +613,23 @@ export class LocalMatchService implements OnDestroy {
         };
     }
 
+    get isSpectator(): boolean {
+        return this.networkConfig?.role === "spectator";
+    }
+
     get humanPlayer(): PlayerId {
-        return this.networkConfig?.role ?? HUMAN_PLAYER;
+        if (this.networkConfig?.role && this.networkConfig.role !== "spectator") {
+            return this.networkConfig.role;
+        }
+
+        return HUMAN_PLAYER;
     }
 
     get humanPlayerName(): string {
+        if (this.isSpectator) {
+            return "Espectador";
+        }
+
         return this.getPlayerName(this.humanPlayer, true, -1);
     }
 
@@ -767,7 +792,7 @@ export class LocalMatchService implements OnDestroy {
         const params = new URLSearchParams(window.location.search);
         const roomId = params.get("room");
         const role = params.get("role");
-        if (!roomId || !this.isPlayerId(role)) {
+        if (!roomId || !this.isNetworkRole(role)) {
             return null;
         }
 
@@ -794,6 +819,10 @@ export class LocalMatchService implements OnDestroy {
 
     private isPlayerId(value: string | null): value is PlayerId {
         return value === "A" || value === "B" || value === "C" || value === "D";
+    }
+
+    private isNetworkRole(value: string | null): value is NetworkRole {
+        return this.isPlayerId(value) || value === "spectator";
     }
 
     private parseHumanPlayers(value: string | null): readonly PlayerId[] {
@@ -1449,7 +1478,7 @@ export class LocalMatchService implements OnDestroy {
             shuffle: "assets/sons/embaralhando.mp3.mp3",
             point: "assets/sons/ponto coin.mp3.mp3",
             galo: "assets/sons/galo.mp3.mp3",
-            laugh: "assets/sons/risada-muttley-rabugento.mp3",
+            laugh: "assets/sons/zoeira-risada-do-bandido.mp3",
         };
         const audio = new Audio(sourceByKind[kind]);
         audio.volume = kind === "shuffle" ? 0.55 : kind === "laugh" ? 0.85 : 0.75;

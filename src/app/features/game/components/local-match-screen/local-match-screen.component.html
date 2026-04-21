@@ -141,6 +141,9 @@
                         {{ occupiedLobbyRoles.includes(player) ? roomInfo?.playerNames?.[player] || "ocupado" : "livre" }}
                     </span>
                 </div>
+                <p *ngIf="shouldShowJoinRoomInfo && roomSpectators.length > 0" class="room-note compact">
+                    Espectadores: {{ roomSpectators.join(", ") }}
+                </p>
                 <label>
                     Senha
                     <input
@@ -156,6 +159,7 @@
                         <option *ngFor="let role of availableJoinRoles" [ngValue]="role">
                             Posicao {{ role }}
                         </option>
+                        <option [ngValue]="'spectator'">Espectador</option>
                     </select>
                 </label>
                 <button type="submit" class="primary small" [disabled]="isRoomRequestPending">Entrar</button>
@@ -204,7 +208,7 @@
                     [style.height.px]="mobileBottomRowHeight"
                     [style.min-height.px]="mobileBottomRowHeight"
                     [style.max-height.px]="mobileBottomRowHeight">
-                    <div class="hand-slot">
+                    <div *ngIf="!match.isSpectator; else spectatorSlot" class="hand-slot">
                         <app-player-hand
                             [hand]="match.humanHand"
                             [selectedTileKey]="selectedTileKey"
@@ -220,6 +224,11 @@
                             (dragTileEnd)="handleDragTileEnd()">
                         </app-player-hand>
                     </div>
+                    <ng-template #spectatorSlot>
+                        <div class="hand-slot spectator-slot">
+                            Assistindo como espectador
+                        </div>
+                    </ng-template>
 
                     <div class="mobile-score-strip">
                         <app-score-panel [score]="match.score" [acLabel]="acTeamLabel" [bdLabel]="bdTeamLabel"></app-score-panel>
@@ -243,7 +252,7 @@
                     </div>
                 </div>
 
-                <div class="reaction-bar">
+                <div *ngIf="!match.isSpectator" class="reaction-bar">
                     <button
                         *ngFor="let reaction of reactionOptions"
                         type="button"
@@ -255,6 +264,10 @@
                         🔊
                     </button>
                 </div>
+
+                <p *ngIf="match.isSpectator" class="room-note spectator-note">
+                    Voce entrou como espectador. Acompanhe a mesa em tempo real, sem ocupar uma posicao.
+                </p>
 
                 <details class="mobile-details">
                     <summary>Ver turno e historico</summary>
@@ -326,7 +339,7 @@
             (newMatch)="handleStartNewMatch()">
         </app-match-result-modal>
 
-        <button type="button" class="new-match-quiet" (click)="handleStartNewMatch()">
+        <button *ngIf="!match.isSpectator" type="button" class="new-match-quiet" (click)="handleStartNewMatch()">
             Nova partida
         </button>
 

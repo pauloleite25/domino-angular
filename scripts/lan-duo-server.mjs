@@ -60,6 +60,7 @@ function publicRoom(roomId, room) {
     playerNames: getPublicPlayerNames(room),
     occupiedRoles: Array.from(room.occupiedRoles),
     availableRoles: joinableRoles.filter((role) => !room.occupiedRoles.has(role)),
+    spectators: [...(room.spectators ?? [])],
   };
 }
 
@@ -128,6 +129,7 @@ function getRoom(roomId) {
     humanPlayers: ["A"],
     playerNames: {},
     occupiedRoles: new Set(),
+    spectators: [],
     snapshot: null,
     snapshotVersion: 0,
     nextCommandId: 1,
@@ -232,6 +234,7 @@ const server = http.createServer(async (request, response) => {
         humanPlayers: ["A"],
         playerNames: { A: playerName },
         occupiedRoles: new Set(["A"]),
+        spectators: [],
         snapshot: null,
         snapshotVersion: 0,
         nextCommandId: 1,
@@ -275,13 +278,23 @@ const server = http.createServer(async (request, response) => {
 
       const role = String(body.role ?? "").toUpperCase();
       const playerName = normalizePlayerName(body.playerName);
-      if (!joinableRoles.includes(role)) {
+      const wantsSpectator = body.spectator === true || role === "SPECTATOR";
+      if (!wantsSpectator && !joinableRoles.includes(role)) {
         sendJson(response, 400, { error: "Escolha uma posicao valida." });
         return;
       }
 
       if (!playerName) {
         sendJson(response, 400, { error: "Informe seu nome." });
+        return;
+      }
+
+      if (wantsSpectator) {
+        room.spectators = [...(room.spectators ?? []), playerName].slice(-20);
+        sendJson(response, 200, {
+          ...publicRoom(roomId, room),
+          role: "spectator",
+        });
         return;
       }
 

@@ -2,7 +2,7 @@ import { AfterViewChecked, Component, DoCheck, ElementRef, OnDestroy, ViewChild 
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
 import { LocalMatchService } from "../../services/local-match.service";
-import type { MoveHistoryEntry, PlayerNames, RecentReaction, RecentTurnEvent } from "../../services/local-match.service";
+import type { MoveHistoryEntry, NetworkRole, PlayerNames, RecentReaction, RecentTurnEvent } from "../../services/local-match.service";
 
 function isPlayableMove(move: LegalMove): move is Extract<LegalMove, { kind: "play" }> {
     return move.kind === "play";
@@ -18,6 +18,7 @@ type RoomInfo = {
     readonly playerNames?: PlayerNames;
     readonly occupiedRoles: readonly PlayerId[];
     readonly availableRoles: readonly PlayerId[];
+    readonly spectators?: readonly string[];
 };
 
 type FloatingEvent = {
@@ -47,7 +48,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     joinRoomName = "";
     joinRoomPassword = "";
     joinPlayerName = "";
-    selectedJoinRole: PlayerId = "B";
+    selectedJoinRole: NetworkRole = "B";
     roomInfo: RoomInfo | null = null;
     roomStatusMessage = "";
     roomErrorMessage = "";
@@ -230,6 +231,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
     get availableJoinRoles(): readonly PlayerId[] {
         return this.roomInfo?.availableRoles?.length ? this.roomInfo.availableRoles : ["B", "C", "D"];
+    }
+
+    get roomSpectators(): readonly string[] {
+        return this.roomInfo?.spectators ?? [];
     }
 
     get lobbyPlayers(): readonly PlayerId[] {
@@ -457,12 +462,13 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                 body: JSON.stringify({
                     password: this.joinRoomPassword,
                     role: this.selectedJoinRole,
+                    spectator: this.selectedJoinRole === "spectator",
                     playerName: this.joinPlayerName,
                 }),
             });
             const payload = (await response.json()) as {
                 readonly error?: string;
-                readonly role?: PlayerId;
+                readonly role?: NetworkRole;
                 readonly humanPlayers?: readonly PlayerId[];
                 readonly playerNames?: PlayerNames;
                 readonly roomId?: string;
@@ -475,7 +481,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
             this.openNetworkRoom(payload.roomId, payload.role, payload.humanPlayers ?? ["A", "B"], {
                 ...(payload.playerNames ?? {}),
-                [payload.role]: this.joinPlayerName.trim(),
+                ...(payload.role !== "spectator" ? { [payload.role]: this.joinPlayerName.trim() } : {}),
             });
         } catch {
             this.setRoomMessage("", this.getRoomServerUnavailableMessage());
@@ -509,8 +515,8 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             }
 
             this.roomInfo = payload.room;
-            this.selectedJoinRole = this.availableJoinRoles[0] ?? "B";
-            this.setRoomMessage("Escolha sua posicao e informe a senha.", "");
+            this.selectedJoinRole = this.availableJoinRoles[0] ?? "spectator";
+            this.setRoomMessage("Escolha sua posicao ou entre como espectador.", "");
         } catch {
             this.setRoomMessage("", this.getRoomServerUnavailableMessage());
         } finally {
@@ -556,7 +562,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
     private openNetworkRoom(
         roomId: string,
-        role: PlayerId,
+        role: NetworkRole,
         humanPlayers: readonly PlayerId[],
         playerNames: PlayerNames,
     ): void {

@@ -523,6 +523,22 @@
     min-width: 0;
 }
 
+.spectator-slot {
+    display: grid;
+    place-items: center;
+    border: 1px dashed rgb(216 235 228 / 24%);
+    border-radius: 10px;
+    background: rgb(12 19 17 / 78%);
+    color: #d8ebe4;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.spectator-note {
+    text-align: center;
+}
+
 .mobile-details {
     display: none;
 }
