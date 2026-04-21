@@ -790,6 +790,10 @@ export class LocalMatchService implements OnDestroy {
 
     private readNetworkConfig(): NetworkConfig | null {
         const params = new URLSearchParams(window.location.search);
+        if (params.get("session")) {
+            return null;
+        }
+
         const roomId = params.get("room");
         const role = params.get("role");
         if (!roomId || !this.isNetworkRole(role)) {

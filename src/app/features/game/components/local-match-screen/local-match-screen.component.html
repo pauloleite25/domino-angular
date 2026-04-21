@@ -35,7 +35,7 @@
                     </button>
                     <button type="button" class="menu-button join" (click)="startPanel = 'join'">
                         <span>Entrar na sala</span>
-                        <small>Use nome, senha e posicao</small>
+                        <small>Use codigo, senha e posicao</small>
                     </button>
                 </div>
                 <button
@@ -50,7 +50,7 @@
                     Quando o host iniciar, sua tela sera sincronizada automaticamente.
                 </p>
                 <p *ngIf="match.networkRoomId && !match.isNetworkGuest" class="room-note">
-                    Sala <strong>{{ match.networkRoomId }}</strong> criada. Aguarde seus amigos entrarem para iniciar.
+                    Sala <strong>{{ match.networkRoomId }}</strong> criada. Compartilhe esse codigo e aguarde seus amigos entrarem para iniciar.
                 </p>
             </div>
         </div>
@@ -82,7 +82,7 @@
                         placeholder="ex: Paulo" />
                 </label>
                 <label>
-                    Nome da sala
+                    Codigo da sala
                     <input
                         name="createRoomName"
                         [(ngModel)]="createRoomName"
@@ -121,7 +121,7 @@
                         placeholder="ex: Joao" />
                 </label>
                 <label>
-                    Nome da sala
+                    Codigo da sala
                     <input
                         name="joinRoomName"
                         [(ngModel)]="joinRoomName"

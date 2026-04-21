@@ -1,8 +1,13 @@
 import { AfterViewChecked, Component, DoCheck, ElementRef, OnDestroy, ViewChild } from "@angular/core";
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
+<<<<<<< HEAD
 import { LocalMatchService } from "../../services/local-match.service";
 import type { MoveHistoryEntry, NetworkRole, PlayerNames, RecentReaction, RecentTurnEvent } from "../../services/local-match.service";
+=======
+import { MatchFacadeService } from "../../services/match-facade.service";
+import type { MoveHistoryEntry, PlayerNames, RecentTurnEvent } from "../../services/local-match.service";
+>>>>>>> 791dc5d (wip)
 
 function isPlayableMove(move: LegalMove): move is Extract<LegalMove, { kind: "play" }> {
     return move.kind === "play";
@@ -14,7 +19,6 @@ function isPassMove(move: LegalMove): move is Extract<LegalMove, { kind: "pass" 
 
 type RoomInfo = {
     readonly roomId: string;
-    readonly humanPlayers: readonly PlayerId[];
     readonly playerNames?: PlayerNames;
     readonly occupiedRoles: readonly PlayerId[];
     readonly availableRoles: readonly PlayerId[];
@@ -71,7 +75,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     private isIosViewportSyncEnabled = false;
     private readonly onViewportResize = () => this.updateIosViewportHeight();
 
-    constructor(public match: LocalMatchService) {
+    constructor(public match: MatchFacadeService) {
         this.startLobbyPolling();
     }
 
@@ -222,7 +226,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             return true;
         }
 
-        return (this.roomInfo?.humanPlayers.length ?? this.match.networkHumanPlayers.length) >= 2;
+        return (this.roomInfo?.occupiedRoles.length ?? this.match.networkHumanPlayers.length) >= 1;
     }
 
     get occupiedLobbyRoles(): readonly PlayerId[] {
@@ -412,32 +416,39 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.setRoomMessage("Criando sala...", "");
 
         try {
-            const response = await fetch(`${this.getNetworkApiBase()}/rooms`, {
+            const sessionResponse = await fetch(`${this.getNetworkApiBase()}/players/sessions/guest_session/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    roomId,
-                    password: this.createRoomPassword,
-                    playerName: this.createPlayerName,
-                }),
+                body: JSON.stringify({ nickname: this.createPlayerName.trim() }),
             });
-            const payload = (await response.json()) as {
-                readonly error?: string;
-                readonly role?: PlayerId;
-                readonly humanPlayers?: readonly PlayerId[];
-                readonly playerNames?: PlayerNames;
-                readonly roomId?: string;
-            };
-
-            if (!response.ok || !payload.role || !payload.roomId) {
-                this.setRoomMessage("", payload.error ?? "Nao foi possivel criar a sala.");
+            const sessionPayload = (await sessionResponse.json()) as { readonly session_key?: string };
+            if (!sessionResponse.ok || !sessionPayload.session_key) {
+                this.setRoomMessage("", "Nao foi possivel criar sua sessao casual.");
                 return;
             }
 
-            this.openNetworkRoom(payload.roomId, payload.role, payload.humanPlayers ?? ["A"], {
-                ...(payload.playerNames ?? {}),
-                [payload.role]: this.createPlayerName.trim(),
+            const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    session_key: sessionPayload.session_key,
+                    name: roomId,
+                    password: this.createRoomPassword,
+                    max_players: 4,
+                    role: "A",
+                }),
             });
+            const payload = (await response.json()) as {
+                readonly detail?: string;
+                readonly code?: string;
+            };
+
+            if (!response.ok || !payload.code) {
+                this.setRoomMessage("", payload.detail ?? "Nao foi possivel criar a sala.");
+                return;
+            }
+
+            this.openNetworkRoom(payload.code, "A", sessionPayload.session_key);
         } catch {
             this.setRoomMessage("", this.getRoomServerUnavailableMessage());
         } finally {
@@ -456,9 +467,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.setRoomMessage("Entrando na sala...", "");
 
         try {
-            const response = await fetch(`${this.getNetworkApiBase()}/rooms/${encodeURIComponent(roomId)}/join`, {
+            const sessionResponse = await fetch(`${this.getNetworkApiBase()}/players/sessions/guest_session/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
+<<<<<<< HEAD
                 body: JSON.stringify({
                     password: this.joinRoomPassword,
                     role: this.selectedJoinRole,
@@ -482,7 +494,35 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             this.openNetworkRoom(payload.roomId, payload.role, payload.humanPlayers ?? ["A", "B"], {
                 ...(payload.playerNames ?? {}),
                 ...(payload.role !== "spectator" ? { [payload.role]: this.joinPlayerName.trim() } : {}),
+=======
+                body: JSON.stringify({ nickname: this.joinPlayerName.trim() }),
             });
+            const sessionPayload = (await sessionResponse.json()) as { readonly session_key?: string };
+            if (!sessionResponse.ok || !sessionPayload.session_key) {
+                this.setRoomMessage("", "Nao foi possivel criar sua sessao casual.");
+                return;
+            }
+
+            const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/${encodeURIComponent(roomId)}/join/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    session_key: sessionPayload.session_key,
+                    password: this.joinRoomPassword,
+                    role: this.selectedJoinRole,
+                }),
+>>>>>>> 791dc5d (wip)
+            });
+            const payload = (await response.json()) as {
+                readonly detail?: string;
+            };
+
+            if (!response.ok) {
+                this.setRoomMessage("", payload.detail ?? "Nao foi possivel entrar na sala.");
+                return;
+            }
+
+            this.openNetworkRoom(roomId, this.selectedJoinRole, sessionPayload.session_key);
         } catch {
             this.setRoomMessage("", this.getRoomServerUnavailableMessage());
         } finally {
@@ -501,22 +541,34 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.setRoomMessage("Buscando sala...", "");
 
         try {
-            const response = await fetch(`${this.getNetworkApiBase()}/rooms/${encodeURIComponent(roomId)}`);
+            const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/${encodeURIComponent(roomId)}/status/`);
             const payload = (await response.json()) as {
-                readonly exists?: boolean;
-                readonly room?: RoomInfo | null;
-                readonly error?: string;
+                readonly code?: string;
+                readonly player_names?: PlayerNames;
+                readonly occupied_roles?: readonly PlayerId[];
+                readonly available_roles?: readonly PlayerId[];
             };
 
-            if (!response.ok || !payload.exists || !payload.room) {
+            if (!response.ok || !payload.code) {
                 this.roomInfo = null;
-                this.setRoomMessage("", payload.error ?? "Sala nao encontrada.");
+                this.setRoomMessage("", "Sala nao encontrada.");
                 return;
             }
 
+<<<<<<< HEAD
             this.roomInfo = payload.room;
             this.selectedJoinRole = this.availableJoinRoles[0] ?? "spectator";
             this.setRoomMessage("Escolha sua posicao ou entre como espectador.", "");
+=======
+            this.roomInfo = {
+                roomId: payload.code,
+                playerNames: payload.player_names,
+                occupiedRoles: payload.occupied_roles ?? [],
+                availableRoles: payload.available_roles ?? ["B", "C", "D"],
+            };
+            this.selectedJoinRole = this.availableJoinRoles[0] ?? "B";
+            this.setRoomMessage("Escolha sua posicao e informe a senha.", "");
+>>>>>>> 791dc5d (wip)
         } catch {
             this.setRoomMessage("", this.getRoomServerUnavailableMessage());
         } finally {
@@ -545,38 +597,32 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     }
 
     private getNetworkApiBase(): string {
-        if (window.location.port === "4201" || window.location.port === "4200") {
-            return `http://${window.location.hostname}:4310`;
-        }
-
-        return window.location.origin;
+        return "/api";
     }
 
     private getRoomServerUnavailableMessage(): string {
         if (window.location.port === "4201" || window.location.port === "4200") {
-            return "Servidor de salas indisponivel. Rode npm run dev para subir o jogo e o servidor de salas juntos.";
+            return "Backend indisponivel. Inicie o Angular com proxy e o Django em paralelo.";
         }
 
-        return "Servidor de salas indisponivel.";
+        return "Backend indisponivel.";
     }
 
+<<<<<<< HEAD
     private openNetworkRoom(
         roomId: string,
         role: NetworkRole,
         humanPlayers: readonly PlayerId[],
         playerNames: PlayerNames,
     ): void {
+=======
+    private openNetworkRoom(roomId: string, role: PlayerId, sessionKey: string): void {
+>>>>>>> 791dc5d (wip)
         const params = new URLSearchParams({
             room: roomId,
             role,
-            humans: humanPlayers.join(","),
-            names: JSON.stringify(playerNames),
+            session: sessionKey,
         });
-        const apiBase = this.getNetworkApiBase();
-        if (apiBase !== window.location.origin) {
-            params.set("api", apiBase);
-        }
-
         window.location.href = `${window.location.pathname}?${params.toString()}`;
     }
 
@@ -608,16 +654,24 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         }
 
         try {
-            const response = await fetch(`${this.getNetworkApiBase()}/rooms/${encodeURIComponent(roomId)}`);
+            const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/${encodeURIComponent(roomId)}/status/`);
             const payload = (await response.json()) as {
-                readonly room?: RoomInfo | null;
+                readonly code?: string;
+                readonly player_names?: PlayerNames;
+                readonly occupied_roles?: readonly PlayerId[];
+                readonly available_roles?: readonly PlayerId[];
             };
-            if (!response.ok || !payload.room) {
+            if (!response.ok || !payload.code) {
                 return;
             }
 
-            this.roomInfo = payload.room;
-            this.match.setNetworkRoomInfo(payload.room.humanPlayers, payload.room.playerNames ?? {});
+            this.roomInfo = {
+                roomId: payload.code,
+                playerNames: payload.player_names,
+                occupiedRoles: payload.occupied_roles ?? [],
+                availableRoles: payload.available_roles ?? ["B", "C", "D"],
+            };
+            this.match.setNetworkRoomInfo(payload.occupied_roles ?? [], payload.player_names ?? {});
         } catch {
             // Mantem a tela usavel; a mensagem de erro aparece nas acoes de criar/entrar.
         }
