@@ -91,6 +91,7 @@ export type RecentReaction = {
     readonly id: number;
     readonly playerId: PlayerId;
     readonly emoji: string;
+    readonly sound: "none" | "laugh";
 };
 
 export type GaloPopup = {
@@ -145,6 +146,7 @@ type NetworkCommand =
           readonly playerId: PlayerId;
           readonly action: "reaction";
           readonly emoji: string;
+          readonly sound?: "none" | "laugh";
       };
 
 type NetworkRoomPayload = {
@@ -691,11 +693,24 @@ export class LocalMatchService implements OnDestroy {
         }
 
         if (this.isNetworkGuest) {
-            void this.postNetworkReaction(emoji);
+            void this.postNetworkReaction(emoji, "none");
             return;
         }
 
-        this.setState(this.withReaction(this.state, this.humanPlayer, emoji));
+        this.setState(this.withReaction(this.state, this.humanPlayer, emoji, "none"));
+    }
+
+    sendLaughReaction(): void {
+        if (!this.hasMatch) {
+            return;
+        }
+
+        if (this.isNetworkGuest) {
+            void this.postNetworkReaction("😆", "laugh");
+            return;
+        }
+
+        this.setState(this.withReaction(this.state, this.humanPlayer, "😆", "laugh"));
     }
 
     playHumanMove(move: LegalMove): void {
@@ -967,7 +982,7 @@ export class LocalMatchService implements OnDestroy {
         });
     }
 
-    private async postNetworkReaction(emoji: string): Promise<void> {
+    private async postNetworkReaction(emoji: string, sound: "none" | "laugh"): Promise<void> {
         if (!this.networkConfig || this.networkConfig.isHost) {
             return;
         }
@@ -979,6 +994,7 @@ export class LocalMatchService implements OnDestroy {
                 playerId: this.humanPlayer,
                 action: "reaction",
                 emoji,
+                sound,
             }),
         });
     }
@@ -1010,7 +1026,7 @@ export class LocalMatchService implements OnDestroy {
         }
 
         if (command.action === "reaction") {
-            this.setState(this.withReaction(this.state, command.playerId, command.emoji));
+            this.setState(this.withReaction(this.state, command.playerId, command.emoji, command.sound ?? "none"));
             return;
         }
 
@@ -1323,13 +1339,23 @@ export class LocalMatchService implements OnDestroy {
         };
     }
 
-    private withReaction(state: LocalMatchState, playerId: PlayerId, emoji: string): LocalMatchState {
+    private withReaction(
+        state: LocalMatchState,
+        playerId: PlayerId,
+        emoji: string,
+        sound: "none" | "laugh",
+    ): LocalMatchState {
+        if (sound === "laugh") {
+            this.playSound("laugh");
+        }
+
         return {
             ...state,
             recentReaction: {
                 id: Date.now(),
                 playerId,
                 emoji: emoji.slice(0, 8),
+                sound,
             },
         };
     }
@@ -1384,6 +1410,20 @@ export class LocalMatchService implements OnDestroy {
             }
         }
 
+        const previousReactionKey = previousState.recentReaction
+            ? `${previousState.recentReaction.id}-${previousState.recentReaction.sound}`
+            : null;
+        const nextReactionKey = nextState.recentReaction
+            ? `${nextState.recentReaction.id}-${nextState.recentReaction.sound}`
+            : null;
+        if (
+            nextReactionKey !== null &&
+            nextReactionKey !== previousReactionKey &&
+            nextState.recentReaction?.sound === "laugh"
+        ) {
+            this.playSound("laugh");
+        }
+
         const previousGaloId = previousState.galoPopup?.id ?? null;
         const nextGaloId = nextState.galoPopup?.id ?? null;
         if (nextGaloId !== null && nextGaloId !== previousGaloId) {
@@ -1399,7 +1439,7 @@ export class LocalMatchService implements OnDestroy {
         return `${event.type}-${event.playerId}-${"points" in event ? event.points : 0}`;
     }
 
-    private playSound(kind: "tile" | "shuffle" | "point" | "galo"): void {
+    private playSound(kind: "tile" | "shuffle" | "point" | "galo" | "laugh"): void {
         if (typeof Audio === "undefined") {
             return;
         }
@@ -1409,9 +1449,10 @@ export class LocalMatchService implements OnDestroy {
             shuffle: "assets/sons/embaralhando.mp3.mp3",
             point: "assets/sons/ponto coin.mp3.mp3",
             galo: "assets/sons/galo.mp3.mp3",
+            laugh: "assets/sons/risada-muttley-rabugento.mp3",
         };
         const audio = new Audio(sourceByKind[kind]);
-        audio.volume = kind === "shuffle" ? 0.55 : 0.75;
+        audio.volume = kind === "shuffle" ? 0.55 : kind === "laugh" ? 0.85 : 0.75;
         void audio.play().catch(() => {
             // Alguns navegadores bloqueiam audio antes da primeira interacao.
         });

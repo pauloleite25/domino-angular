@@ -371,6 +371,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.match.sendReaction(emoji);
     }
 
+    handleSendLaughReaction(): void {
+        this.match.sendLaughReaction();
+    }
+
     async handleStartNewMatch(): Promise<void> {
         if (this.match.networkRoomId && !this.canStartNetworkRoomMatch) {
             this.setRoomMessage("", "Aguarde seu amigo entrar na sala antes de iniciar.");

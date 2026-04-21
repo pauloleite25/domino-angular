@@ -358,7 +358,10 @@ const server = http.createServer(async (request, response) => {
       const command = {
         id: activeRoom.nextCommandId,
         playerId: body.playerId,
+        action: body.action ?? "move",
         move: body.move,
+        emoji: body.emoji,
+        sound: body.sound,
         createdAt: Date.now(),
       };
       activeRoom.nextCommandId += 1;
