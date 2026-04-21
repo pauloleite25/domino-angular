@@ -6,12 +6,12 @@
 
     <div class="score-grid">
         <div class="score-card" [class.leading]="score.AC >= score.BD">
-            <div class="label">Dupla A/C</div>
+            <div class="label">{{ acLabel }}</div>
             <div class="value">{{ score.AC }}</div>
         </div>
 
         <div class="score-card" [class.leading]="score.BD >= score.AC">
-            <div class="label">Dupla B/D</div>
+            <div class="label">{{ bdLabel }}</div>
             <div class="value">{{ score.BD }}</div>
         </div>
     </div>

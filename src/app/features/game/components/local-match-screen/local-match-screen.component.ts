@@ -106,6 +106,14 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         return this.match.moveHistory.slice(-3);
     }
 
+    get acTeamLabel(): string {
+        return this.getTeamLabel("AC");
+    }
+
+    get bdTeamLabel(): string {
+        return this.getTeamLabel("BD");
+    }
+
     get playableMoves(): readonly Extract<LegalMove, { kind: "play" }>[] {
         return this.match.humanLegalMoves.filter(isPlayableMove);
     }
@@ -785,6 +793,11 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             window.clearTimeout(timeoutId);
         }
         this.floatingEventTimeouts = [];
+    }
+
+    private getTeamLabel(teamId: "AC" | "BD"): string {
+        const members = this.match.players.filter((player) => player.team === teamId).map((player) => player.name);
+        return members.length > 0 ? members.join(" / ") : teamId;
     }
 
     private freezeMobileBottomRowHeight(): void {

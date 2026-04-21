@@ -796,16 +796,10 @@ export class LocalMatchService implements OnDestroy {
     }
 
     private getHistoryPlayerLabel(playerId: PlayerId): string {
-        if (!this.isHumanPlayer(playerId)) {
-            return playerId;
-        }
-
-        const configuredName = this.networkPlayerNames[playerId]?.trim() ?? this.state.playerNames[playerId]?.trim() ?? "";
-        if (configuredName && !isPlaceholderPlayerName(playerId, configuredName)) {
-            return configuredName;
-        }
-
-        return playerId === this.humanPlayer ? "Voce" : playerId;
+        const isHuman = this.isHumanPlayer(playerId);
+        const botPlayers = TURN_ORDER.filter((candidate) => !this.isHumanPlayer(candidate));
+        const botIndex = botPlayers.indexOf(playerId);
+        return this.getPlayerName(playerId, isHuman, botIndex);
     }
 
     private isHumanPlayer(playerId: PlayerId): boolean {
@@ -913,12 +907,14 @@ export class LocalMatchService implements OnDestroy {
             ...this.networkPlayerNames,
             ...(payload.room?.playerNames ?? {}),
         };
-        this.setNetworkRoomInfo(humanPlayers, playerNames);
-        this.state = {
+        const nextState: LocalMatchState = {
             ...snapshot,
             humanPlayers,
             playerNames,
         };
+        this.playGuestSnapshotSounds(this.state, nextState);
+        this.setNetworkRoomInfo(humanPlayers, playerNames);
+        this.state = nextState;
     }
 
     private async postNetworkCommand(move: LegalMove): Promise<void> {
@@ -1280,6 +1276,54 @@ export class LocalMatchService implements OnDestroy {
         }
 
         return history.slice(0, index + 1);
+    }
+
+    private playGuestSnapshotSounds(previousState: LocalMatchState, nextState: LocalMatchState): void {
+        const previousRoundNumber = previousState.match?.currentRound.roundNumber ?? null;
+        const nextRoundNumber = nextState.match?.currentRound.roundNumber ?? null;
+        const didStartMatch = previousState.match === null && nextState.match !== null;
+        const didAdvanceRound =
+            previousRoundNumber !== null &&
+            nextRoundNumber !== null &&
+            nextRoundNumber > previousRoundNumber &&
+            nextState.lastRoundResult === null;
+
+        if (didStartMatch || didAdvanceRound) {
+            this.playSound("shuffle");
+        }
+
+        const previousHistoryLength = previousState.moveHistory.length;
+        const nextHistoryLength = nextState.moveHistory.length;
+        const didReceiveNewHistoryEntry = nextHistoryLength > previousHistoryLength;
+        const previousRecentEventKey = this.getRecentEventSoundKey(previousState.recentEvent);
+        const nextRecentEventKey = this.getRecentEventSoundKey(nextState.recentEvent);
+
+        if (didReceiveNewHistoryEntry && nextRecentEventKey !== null && nextRecentEventKey !== previousRecentEventKey) {
+            if (nextState.recentEvent?.type === "play" || nextState.recentEvent?.type === "score") {
+                this.playSound("tile");
+            }
+
+            if (
+                (nextState.recentEvent?.type === "score" && nextState.recentEvent.points > 0) ||
+                (nextState.recentEvent?.type === "pass" && nextState.recentEvent.points > 0)
+            ) {
+                this.playSound("point");
+            }
+        }
+
+        const previousGaloId = previousState.galoPopup?.id ?? null;
+        const nextGaloId = nextState.galoPopup?.id ?? null;
+        if (nextGaloId !== null && nextGaloId !== previousGaloId) {
+            this.playSound("galo");
+        }
+    }
+
+    private getRecentEventSoundKey(event: TurnEvent | null): string | null {
+        if (event === null) {
+            return null;
+        }
+
+        return `${event.type}-${event.playerId}-${"points" in event ? event.points : 0}`;
     }
 
     private playSound(kind: "tile" | "shuffle" | "point" | "galo"): void {

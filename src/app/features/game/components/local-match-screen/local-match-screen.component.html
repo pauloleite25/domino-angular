@@ -222,7 +222,7 @@
                     </div>
 
                     <div class="mobile-score-strip">
-                        <app-score-panel [score]="match.score"></app-score-panel>
+                        <app-score-panel [score]="match.score" [acLabel]="acTeamLabel" [bdLabel]="bdTeamLabel"></app-score-panel>
                     </div>
 
                     <div class="mobile-round-actions">
@@ -271,7 +271,7 @@
 
             <aside class="side-column">
                 <div class="score-with-actions">
-                    <app-score-panel [score]="match.score"></app-score-panel>
+                    <app-score-panel [score]="match.score" [acLabel]="acTeamLabel" [bdLabel]="bdTeamLabel"></app-score-panel>
                     <div class="round-actions">
                         <button *ngIf="match.canStartNextRound" type="button" class="primary small" (click)="match.startNextRound()">
                             Proxima rodada

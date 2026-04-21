@@ -7,12 +7,14 @@ import { Component, Input } from "@angular/core";
 })
 export class ScorePanelComponent {
     @Input({ required: true }) score!: { readonly AC: number; readonly BD: number };
+    @Input() acLabel = "Dupla A/C";
+    @Input() bdLabel = "Dupla B/D";
 
     get leader(): string {
         if (this.score.AC === this.score.BD) {
             return "Empate";
         }
 
-        return this.score.AC > this.score.BD ? "A/C na frente" : "B/D na frente";
+        return this.score.AC > this.score.BD ? `${this.acLabel} na frente` : `${this.bdLabel} na frente`;
     }
 }
