@@ -25,6 +25,39 @@ type RoomInfo = {
     readonly spectators?: readonly string[];
 };
 
+type JsonObject = Record<string, unknown>;
+
+async function parseApiResponse(response: Response): Promise<JsonObject> {
+    const raw = await response.text();
+    if (!raw.trim()) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(raw) as JsonObject;
+    } catch {
+        return { detail: raw };
+    }
+}
+
+function readApiError(payload: JsonObject, fallback: string): string {
+    const detail = payload["detail"];
+    if (typeof detail === "string" && detail.trim()) {
+        return detail;
+    }
+
+    for (const value of Object.values(payload)) {
+        if (Array.isArray(value) && typeof value[0] === "string") {
+            return value[0];
+        }
+        if (typeof value === "string" && value.trim()) {
+            return value;
+        }
+    }
+
+    return fallback;
+}
+
 type FloatingEvent = {
     readonly id: number;
     readonly playerId: PlayerId;
@@ -405,6 +438,11 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.match.startNewMatch();
     }
 
+    async handleLeaveGame(): Promise<void> {
+        await this.match.leaveCurrentGame();
+        window.location.href = window.location.pathname;
+    }
+
     async handleCreateRoom(): Promise<void> {
         const roomId = this.normalizeRoomName(this.createRoomName);
         if (!roomId || !this.createRoomPassword.trim() || !this.createPlayerName.trim()) {
@@ -421,9 +459,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ nickname: this.createPlayerName.trim() }),
             });
-            const sessionPayload = (await sessionResponse.json()) as { readonly session_key?: string };
+            const sessionPayload = (await parseApiResponse(sessionResponse)) as { readonly session_key?: string; readonly nickname?: readonly string[] | string };
             if (!sessionResponse.ok || !sessionPayload.session_key) {
-                this.setRoomMessage("", "Nao foi possivel criar sua sessao casual.");
+                const sessionError = Array.isArray(sessionPayload.nickname) ? sessionPayload.nickname[0] : sessionPayload.nickname;
+                this.setRoomMessage("", sessionError ?? readApiError(sessionPayload, "Nao foi possivel criar sua sessao casual."));
                 return;
             }
 
@@ -438,13 +477,13 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                     role: "A",
                 }),
             });
-            const payload = (await response.json()) as {
+            const payload = (await parseApiResponse(response)) as {
                 readonly detail?: string;
                 readonly code?: string;
             };
 
             if (!response.ok || !payload.code) {
-                this.setRoomMessage("", payload.detail ?? "Nao foi possivel criar a sala.");
+                this.setRoomMessage("", readApiError(payload, "Nao foi possivel criar a sala."));
                 return;
             }
 
@@ -497,9 +536,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 =======
                 body: JSON.stringify({ nickname: this.joinPlayerName.trim() }),
             });
-            const sessionPayload = (await sessionResponse.json()) as { readonly session_key?: string };
+            const sessionPayload = (await parseApiResponse(sessionResponse)) as { readonly session_key?: string; readonly nickname?: readonly string[] | string };
             if (!sessionResponse.ok || !sessionPayload.session_key) {
-                this.setRoomMessage("", "Nao foi possivel criar sua sessao casual.");
+                const sessionError = Array.isArray(sessionPayload.nickname) ? sessionPayload.nickname[0] : sessionPayload.nickname;
+                this.setRoomMessage("", sessionError ?? readApiError(sessionPayload, "Nao foi possivel criar sua sessao casual."));
                 return;
             }
 
@@ -513,16 +553,17 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                 }),
 >>>>>>> 791dc5d (wip)
             });
-            const payload = (await response.json()) as {
+            const payload = (await parseApiResponse(response)) as {
                 readonly detail?: string;
+                readonly code?: string;
             };
 
             if (!response.ok) {
-                this.setRoomMessage("", payload.detail ?? "Nao foi possivel entrar na sala.");
+                this.setRoomMessage("", readApiError(payload, "Nao foi possivel entrar na sala."));
                 return;
             }
 
-            this.openNetworkRoom(roomId, this.selectedJoinRole, sessionPayload.session_key);
+            this.openNetworkRoom(payload.code ?? roomId, this.selectedJoinRole, sessionPayload.session_key);
         } catch {
             this.setRoomMessage("", this.getRoomServerUnavailableMessage());
         } finally {
@@ -542,7 +583,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
         try {
             const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/${encodeURIComponent(roomId)}/status/`);
-            const payload = (await response.json()) as {
+            const payload = (await parseApiResponse(response)) as {
                 readonly code?: string;
                 readonly player_names?: PlayerNames;
                 readonly occupied_roles?: readonly PlayerId[];
@@ -551,7 +592,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
             if (!response.ok || !payload.code) {
                 this.roomInfo = null;
-                this.setRoomMessage("", "Sala nao encontrada.");
+                this.setRoomMessage("", readApiError(payload, "Sala nao encontrada."));
                 return;
             }
 
@@ -655,7 +696,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
         try {
             const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/${encodeURIComponent(roomId)}/status/`);
-            const payload = (await response.json()) as {
+            const payload = (await parseApiResponse(response)) as {
                 readonly code?: string;
                 readonly player_names?: PlayerNames;
                 readonly occupied_roles?: readonly PlayerId[];

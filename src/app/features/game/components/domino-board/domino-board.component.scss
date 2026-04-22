@@ -139,6 +139,13 @@ h2 {
 }
 
 .tile-hitbox.target {
+    cursor: pointer;
+    padding: 14px;
+    margin: -14px;
+    border-radius: 18px;
+}
+
+.tile-hitbox.target {
     filter:
         drop-shadow(0 0 0.8px #ffd166)
         drop-shadow(0 0 7px rgb(255 209 102 / 54%));
@@ -159,31 +166,31 @@ h2 {
 }
 
 .tile-end-hit.north {
-    left: 18%;
-    top: 0;
-    width: 64%;
-    height: 22%;
+    left: 10%;
+    top: -6%;
+    width: 80%;
+    height: 34%;
 }
 
 .tile-end-hit.south {
-    left: 18%;
-    bottom: 0;
-    width: 64%;
-    height: 22%;
+    left: 10%;
+    bottom: -6%;
+    width: 80%;
+    height: 34%;
 }
 
 .tile-end-hit.east {
-    right: 0;
-    top: 18%;
-    width: 22%;
-    height: 64%;
+    right: -6%;
+    top: 10%;
+    width: 34%;
+    height: 80%;
 }
 
 .tile-end-hit.west {
-    left: 0;
-    top: 18%;
-    width: 22%;
-    height: 64%;
+    left: -6%;
+    top: 10%;
+    width: 34%;
+    height: 80%;
 }
 
 .table-player-labels {

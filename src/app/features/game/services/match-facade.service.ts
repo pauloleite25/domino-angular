@@ -33,6 +33,8 @@ type BackendHistoryEvent = {
     readonly round_number?: number;
     readonly starter?: PlayerId;
     readonly player?: PlayerId;
+    readonly winner_player?: PlayerId | null;
+    readonly winner_team?: TeamId | null;
     readonly tile?: readonly [number, number];
     readonly phase?: "opening" | "end";
     readonly side?: BoardSide;
@@ -127,6 +129,12 @@ type BackendPrivateMatchState = BackendMatchStatus & {
     };
 };
 
+type RealtimePayload = {
+    readonly type: "room_state";
+    readonly room: BackendRoomStatus;
+    readonly match: BackendMatchStatus | BackendPrivateMatchState | null;
+};
+
 type OnlineState = {
     readonly roomInfo: BackendRoomStatus | null;
     readonly matchStatus: BackendMatchStatus | null;
@@ -134,6 +142,14 @@ type OnlineState = {
     readonly moveHistory: readonly MoveHistoryEntry[];
     readonly recentEvent: RecentTurnEvent | null;
     readonly galoPopup: GaloPopup | null;
+};
+
+type OptimisticState = {
+    readonly roundState: RoundState;
+    readonly boardBranches: BoardBranches;
+    readonly humanHand: readonly DominoTile[];
+    readonly currentPlayer: PlayerId;
+    readonly players: readonly PlayerView[];
 };
 
 function toTile(tile: readonly [number, number]): DominoTile {
@@ -154,12 +170,37 @@ function formatTile(tile: readonly [number, number] | DominoTile): string {
     return `[${left}|${right}]`;
 }
 
+
+function sameTile(left: DominoTile, right: DominoTile): boolean {
+    return left.left === right.left && left.right === right.right;
+}
+
+function removeTileFromHand(hand: readonly DominoTile[], tile: DominoTile): readonly DominoTile[] {
+    let removed = false;
+    return hand.filter((current) => {
+        if (!removed && sameTile(current, tile)) {
+            removed = true;
+            return false;
+        }
+
+        return true;
+    });
+}
+
+function nextTurn(playerId: PlayerId): PlayerId {
+    const turnOrder = ["A", "B", "C", "D"] as const;
+    const index = turnOrder.indexOf(playerId);
+    return turnOrder[(index + 1) % turnOrder.length];
+}
+
 @Injectable({
     providedIn: "root",
 })
 export class MatchFacadeService implements OnDestroy {
     private readonly backendNetworkConfig = this.readBackendNetworkConfig();
     private networkIntervalId: number | null = null;
+    private socket: WebSocket | null = null;
+    private socketReconnectTimeoutId: number | null = null;
     private onlineState: OnlineState = {
         roomInfo: null,
         matchStatus: null,
@@ -170,6 +211,9 @@ export class MatchFacadeService implements OnDestroy {
     };
     private dismissedGaloEventKey = "";
     private lastHistoryEventKey = "";
+    private moveRequestInFlight = false;
+    private refreshRequestInFlight = false;
+    private optimisticState: OptimisticState | null = null;
 
     constructor(private readonly local: LocalMatchService) {
         if (this.isBackendMode) {
@@ -183,6 +227,12 @@ export class MatchFacadeService implements OnDestroy {
             window.clearInterval(this.networkIntervalId);
             this.networkIntervalId = null;
         }
+        if (this.socketReconnectTimeoutId !== null) {
+            window.clearTimeout(this.socketReconnectTimeoutId);
+            this.socketReconnectTimeoutId = null;
+        }
+        this.socket?.close();
+        this.socket = null;
     }
 
     get hasMatch(): boolean {
@@ -194,11 +244,19 @@ export class MatchFacadeService implements OnDestroy {
     }
 
     get roundState(): RoundState | null {
-        return this.isBackendMode ? this.buildRoundState() : this.local.roundState;
+        if (!this.isBackendMode) {
+            return this.local.roundState;
+        }
+
+        return this.optimisticState?.roundState ?? this.buildRoundState();
     }
 
     get boardBranches(): BoardBranches {
-        return this.isBackendMode ? this.buildBoardBranches() : this.local.boardBranches;
+        if (!this.isBackendMode) {
+            return this.local.boardBranches;
+        }
+
+        return this.optimisticState?.boardBranches ?? this.buildBoardBranches();
     }
 
     get moveHistory(): readonly MoveHistoryEntry[] {
@@ -208,6 +266,10 @@ export class MatchFacadeService implements OnDestroy {
     get currentPlayer(): PlayerId | null {
         if (!this.isBackendMode) {
             return this.local.currentPlayer;
+        }
+
+        if (this.optimisticState) {
+            return this.optimisticState.currentPlayer;
         }
 
         const currentTurnOrder = this.onlineState.matchStatus?.current_turn_order;
@@ -225,6 +287,10 @@ export class MatchFacadeService implements OnDestroy {
     get players(): readonly PlayerView[] {
         if (!this.isBackendMode) {
             return this.local.players;
+        }
+
+        if (this.optimisticState) {
+            return this.optimisticState.players;
         }
 
         const matchStatus = this.onlineState.matchStatus;
@@ -266,7 +332,7 @@ export class MatchFacadeService implements OnDestroy {
             return this.local.humanHand;
         }
 
-        return this.onlineState.privateState?.player.hand_state.map(toTile) ?? [];
+        return this.optimisticState?.humanHand ?? this.onlineState.privateState?.player.hand_state.map(toTile) ?? [];
     }
 
     get humanLegalMoves(): readonly LegalMove[] {
@@ -299,8 +365,12 @@ export class MatchFacadeService implements OnDestroy {
 
     get isHumanTurn(): boolean {
         return this.isBackendMode
-            ? this.currentPlayer === this.humanPlayer && !this.isMatchOver && !this.isRoundOver
+            ? this.currentPlayer === this.humanPlayer && !this.isMatchOver && !this.isRoundOver && !this.moveRequestInFlight
             : this.local.isHumanTurn;
+    }
+
+    get isMovePending(): boolean {
+        return this.isBackendMode ? this.moveRequestInFlight : false;
     }
 
     get isBotTurn(): boolean {
@@ -389,6 +459,20 @@ export class MatchFacadeService implements OnDestroy {
 
     get recentEvent(): RecentTurnEvent | null {
         return this.isBackendMode ? this.onlineState.recentEvent : this.local.recentEvent;
+    }
+
+    get abandonmentPlayer(): PlayerId | null {
+        if (!this.isBackendMode) {
+            return null;
+        }
+
+        const history = this.onlineState.matchStatus?.history;
+        const latestEvent = history?.[history.length - 1];
+        if (!latestEvent || latestEvent.event !== "match_abandoned" || !latestEvent.player) {
+            return null;
+        }
+
+        return latestEvent.player;
     }
 
     get botCountdownLabel(): number | null {
@@ -489,12 +573,16 @@ export class MatchFacadeService implements OnDestroy {
             return;
         }
 
-        await fetch(`${this.backendNetworkConfig.apiBase}/games/rooms/${encodeURIComponent(this.backendNetworkConfig.roomCode)}/start_match/`, {
+        const response = await fetch(`${this.backendNetworkConfig.apiBase}/games/rooms/${encodeURIComponent(this.backendNetworkConfig.roomCode)}/start_match/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ session_key: this.backendNetworkConfig.sessionKey }),
         });
-        await this.refreshNetworkRoomInfo();
+        if (!response.ok) {
+            if (!response.ok) {
+            await this.refreshNetworkRoomInfo();
+        }
+        }
     }
 
     async startNextRound(): Promise<void> {
@@ -508,12 +596,29 @@ export class MatchFacadeService implements OnDestroy {
             return;
         }
 
-        await fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${matchId}/next_round/`, {
+        const response = await fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${matchId}/next_round/`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ session_key: this.backendNetworkConfig.sessionKey }),
         });
         await this.refreshNetworkRoomInfo();
+    }
+
+    async leaveCurrentGame(): Promise<void> {
+        if (!this.isBackendMode || !this.backendNetworkConfig) {
+            return;
+        }
+
+        try {
+            await fetch(`${this.backendNetworkConfig.apiBase}/games/rooms/${encodeURIComponent(this.backendNetworkConfig.roomCode)}/leave/`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ session_key: this.backendNetworkConfig.sessionKey }),
+            });
+        } finally {
+            this.socket?.close();
+            this.socket = null;
+        }
     }
 
     playHumanMove(move: LegalMove): void {
@@ -522,7 +627,15 @@ export class MatchFacadeService implements OnDestroy {
             return;
         }
 
-        void this.submitBackendMove(move);
+        if (this.moveRequestInFlight || !this.isHumanTurn) {
+            return;
+        }
+
+        this.optimisticState = this.buildOptimisticState(move);
+        this.moveRequestInFlight = true;
+        void this.submitBackendMove(move).finally(() => {
+            this.moveRequestInFlight = false;
+        });
     }
 
     async refreshNetworkRoomInfo(): Promise<void> {
@@ -531,6 +644,11 @@ export class MatchFacadeService implements OnDestroy {
             return;
         }
 
+        if (this.refreshRequestInFlight) {
+            return;
+        }
+
+        this.refreshRequestInFlight = true;
         try {
             const roomResponse = await fetch(
                 `${this.backendNetworkConfig.apiBase}/games/rooms/${encodeURIComponent(this.backendNetworkConfig.roomCode)}/status/`,
@@ -550,6 +668,7 @@ export class MatchFacadeService implements OnDestroy {
                     recentEvent: null,
                     galoPopup: null,
                 };
+                this.optimisticState = null;
                 return;
             }
 
@@ -574,6 +693,8 @@ export class MatchFacadeService implements OnDestroy {
             this.applyBackendState(roomInfo, matchStatus, privateState);
         } catch {
             // O polling tenta novamente silenciosamente.
+        } finally {
+            this.refreshRequestInFlight = false;
         }
     }
 
@@ -607,9 +728,130 @@ export class MatchFacadeService implements OnDestroy {
             return;
         }
 
+        this.connectWebSocket();
         this.networkIntervalId = window.setInterval(() => {
-            void this.refreshNetworkRoomInfo();
-        }, 800);
+            if (this.socket?.readyState !== WebSocket.OPEN) {
+                console.log("[domino-online] fallback polling acionado", {
+                    roomCode: this.backendNetworkConfig?.roomCode,
+                    socketState: this.socket?.readyState ?? "sem-socket",
+                    at: new Date().toISOString(),
+                });
+                void this.refreshNetworkRoomInfo();
+            }
+        }, 15000);
+    }
+
+    private connectWebSocket(): void {
+        if (!this.backendNetworkConfig) {
+            return;
+        }
+
+        if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
+
+        const socket = new WebSocket(this.getWebSocketUrl());
+        this.socket = socket;
+
+        socket.onopen = () => {
+            console.log("[domino-online] websocket conectado", {
+                roomCode: this.backendNetworkConfig?.roomCode,
+                at: new Date().toISOString(),
+            });
+            if (this.socketReconnectTimeoutId !== null) {
+                window.clearTimeout(this.socketReconnectTimeoutId);
+                this.socketReconnectTimeoutId = null;
+            }
+            socket.send(JSON.stringify({ type: "sync" }));
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                const payload = JSON.parse(event.data) as RealtimePayload;
+                if (payload.type !== "room_state") {
+                    return;
+                }
+                console.log("[domino-online] evento realtime recebido", {
+                    roomCode: this.backendNetworkConfig?.roomCode,
+                    matchId: payload.match?.id ?? null,
+                    at: new Date().toISOString(),
+                });
+                this.applyRealtimePayload(payload);
+            } catch {
+                console.log("[domino-online] falha ao ler evento realtime, usando refresh", {
+                    roomCode: this.backendNetworkConfig?.roomCode,
+                    at: new Date().toISOString(),
+                });
+                void this.refreshNetworkRoomInfo();
+            }
+        };
+
+        socket.onclose = (event) => {
+            console.log("[domino-online] websocket fechado", {
+                roomCode: this.backendNetworkConfig?.roomCode,
+                code: event.code,
+                reason: event.reason,
+                wasClean: event.wasClean,
+                at: new Date().toISOString(),
+            });
+            if (this.socket === socket) {
+                this.socket = null;
+            }
+            if (this.socketReconnectTimeoutId !== null) {
+                window.clearTimeout(this.socketReconnectTimeoutId);
+            }
+            this.socketReconnectTimeoutId = window.setTimeout(() => {
+                this.connectWebSocket();
+            }, 1000);
+        };
+
+        socket.onerror = (event) => {
+            console.log("[domino-online] erro no websocket", {
+                roomCode: this.backendNetworkConfig?.roomCode,
+                event,
+                at: new Date().toISOString(),
+            });
+            socket.close();
+        };
+    }
+
+    private getWebSocketUrl(): string {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const host = window.location.host;
+        const roomCode = encodeURIComponent(this.backendNetworkConfig!.roomCode);
+        const session = encodeURIComponent(this.backendNetworkConfig!.sessionKey);
+        return `${protocol}//${host}/ws/rooms/${roomCode}/?session=${session}`;
+    }
+
+    private applyRealtimePayload(payload: RealtimePayload): void {
+        if (payload.match === null) {
+            this.optimisticState = null;
+            this.onlineState = {
+                ...this.onlineState,
+                roomInfo: payload.room,
+                matchStatus: null,
+                privateState: null,
+                moveHistory: [],
+                recentEvent: null,
+                galoPopup: null,
+            };
+            return;
+        }
+
+        if ("player" in payload.match) {
+            this.applyBackendState(payload.room, payload.match, payload.match);
+            return;
+        }
+
+        this.optimisticState = null;
+        this.onlineState = {
+            ...this.onlineState,
+            roomInfo: payload.room,
+            matchStatus: payload.match,
+            privateState: this.onlineState.privateState,
+            moveHistory: payload.match.history.map((event, index) => this.mapMoveHistoryEntry(event, index + 1)),
+            recentEvent: payload.match.history.length > 0 ? this.mapRecentEvent(payload.match.history[payload.match.history.length - 1]) : null,
+        };
     }
 
     private buildBoardBranches(): BoardBranches {
@@ -674,6 +916,101 @@ export class MatchFacadeService implements OnDestroy {
         };
     }
 
+    private buildOptimisticState(move: LegalMove): OptimisticState | null {
+        const roundState = this.buildRoundState();
+        const matchStatus = this.onlineState.matchStatus;
+        if (!roundState || !matchStatus) {
+            return null;
+        }
+
+        const humanHand =
+            move.kind === "play"
+                ? removeTileFromHand(this.humanHand, move.piece)
+                : this.humanHand;
+        const currentPlayer = nextTurn(this.humanPlayer);
+        const boardBranches =
+            move.kind !== "play"
+                ? this.boardBranches
+                : move.phase === "opening"
+                  ? emptyBranchState()
+                  : {
+                        ...this.boardBranches,
+                        [move.endSide]: [...this.boardBranches[move.endSide], move.orientedPiece],
+                    };
+
+        const nextRoundState: RoundState =
+            move.kind !== "play"
+                ? {
+                      ...roundState,
+                      phase: "in_progress",
+                      hands: {
+                          ...roundState.hands,
+                          [this.humanPlayer]: humanHand,
+                      },
+                  }
+                : move.phase === "opening"
+                  ? {
+                        ...roundState,
+                        phase: "in_progress",
+                        hands: {
+                            ...roundState.hands,
+                            [this.humanPlayer]: humanHand,
+                        },
+                        board: {
+                            openingCarroca: move.piece,
+                            placedTilesCount: 1,
+                            ends: {
+                                north: { side: "north", openValue: move.piece.left, branchLength: 0, tipIsDouble: true, isOpen: true },
+                                east: { side: "east", openValue: move.piece.left, branchLength: 0, tipIsDouble: true, isOpen: true },
+                                south: { side: "south", openValue: move.piece.left, branchLength: 0, tipIsDouble: true, isOpen: true },
+                                west: { side: "west", openValue: move.piece.left, branchLength: 0, tipIsDouble: true, isOpen: true },
+                            },
+                        },
+                    }
+                  : {
+                        ...roundState,
+                        phase: "in_progress",
+                        hands: {
+                            ...roundState.hands,
+                            [this.humanPlayer]: humanHand,
+                        },
+                        board: {
+                            ...roundState.board,
+                            placedTilesCount: roundState.board.placedTilesCount + 1,
+                            ends: {
+                                ...roundState.board.ends,
+                                [move.endSide]: {
+                                    ...roundState.board.ends[move.endSide],
+                                    openValue: move.orientedPiece.right,
+                                    branchLength: roundState.board.ends[move.endSide].branchLength + 1,
+                                    tipIsDouble: move.orientedPiece.left === move.orientedPiece.right,
+                                    isOpen: true,
+                                },
+                            },
+                        },
+                    };
+
+        const players = matchStatus.participants.map((participant) => ({
+            id: participant.role,
+            name: this.getBackendPlayerName(participant.role),
+            team: participant.team,
+            handCount:
+                participant.role === this.humanPlayer
+                    ? humanHand.length
+                    : participant.hand_count,
+            isHuman: !participant.is_bot,
+            isCurrent: participant.role === currentPlayer,
+        }));
+
+        return {
+            roundState: nextRoundState,
+            boardBranches,
+            humanHand,
+            currentPlayer,
+            players,
+        };
+    }
+
     private mapBoardEnd(end: BackendMatchStatus["round"]["board"]["ends"][BoardSide]) {
         return {
             side: end.side,
@@ -718,12 +1055,17 @@ export class MatchFacadeService implements OnDestroy {
                       side: move.phase === "end" ? move.endSide : "right",
                   };
 
-        await fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${matchId}/${endpoint === "pass_turn" ? "pass/" : "play/"}`, {
+        const response = await fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${matchId}/${endpoint === "pass_turn" ? "pass/" : "play/"}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload),
         });
+
         await this.refreshNetworkRoomInfo();
+
+        if (!response.ok) {
+            await this.refreshNetworkRoomInfo();
+        }
     }
 
     private applyBackendState(
@@ -746,6 +1088,7 @@ export class MatchFacadeService implements OnDestroy {
                 : this.onlineState.galoPopup;
 
         this.lastHistoryEventKey = latestEventKey;
+        this.optimisticState = null;
         this.onlineState = {
             roomInfo,
             matchStatus,
@@ -799,6 +1142,16 @@ export class MatchFacadeService implements OnDestroy {
                 roundNumber: event.round_number ?? 0,
                 playerId: this.humanPlayer,
                 description: "Rodada encerrada",
+                points: 0,
+            };
+        }
+
+        if (event.event === "match_abandoned" && event.player) {
+            return {
+                id,
+                roundNumber: event.round_number ?? 0,
+                playerId: event.player,
+                description: `${this.getBackendPlayerName(event.player)} abandonou a partida`,
                 points: 0,
             };
         }

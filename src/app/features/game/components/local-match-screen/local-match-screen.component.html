@@ -189,7 +189,7 @@
                         [selectedEnd]="selectedEnd"
                         [selectableEnds]="selectableEnds"
                         [moveOptionBySide]="moveOptionBySide"
-                        [canOpenWithSelectedTile]="canOpenWithSelectedTile && match.isHumanTurn"
+                        [canOpenWithSelectedTile]="canOpenWithSelectedTile && match.isHumanTurn && !match.isMovePending"
                         (selectEnd)="handleSelectEnd($event)"
                         (playOpening)="handlePlayOpening()"
                         (dropOnEnds)="handleDropOnBoardSides($event)"
@@ -199,7 +199,7 @@
 
                 <div *ngIf="canHumanPass" class="pass-box">
                     <span>Sem jogadas disponiveis.</span>
-                    <button type="button" (click)="handlePassTurn()">Passar</button>
+                    <button type="button" [disabled]="match.isMovePending" (click)="handlePassTurn()">Passar</button>
                 </div>
 
                 <div
@@ -215,7 +215,7 @@
                             [playableTileKeys]="playableTileKeys"
                             [playerId]="match.humanPlayer"
                             [playerName]="match.humanPlayerName"
-                            [canInteract]="match.isHumanTurn && !match.isMatchOver && !match.isRoundOver && playableMoves.length > 0"
+                            [canInteract]="match.isHumanTurn && !match.isMovePending && !match.isMatchOver && !match.isRoundOver && playableMoves.length > 0"
                             [isCurrentPlayer]="isCurrentHumanPlayer"
                             [isNextPlayer]="isNextHumanPlayer"
                             [didAStartRound]="didHumanStartRound"
@@ -248,6 +248,9 @@
                         </button>
                         <button *ngIf="!match.canStartNextRound" type="button" class="mobile-new-match" (click)="handleStartNewMatch()">
                             Nova
+                        </button>
+                        <button type="button" class="mobile-home-action" (click)="handleLeaveGame()">
+                            Sair
                         </button>
                     </div>
                 </div>
@@ -302,6 +305,9 @@
                         <button *ngIf="match.canStartNextRound" type="button" class="primary small" (click)="match.startNextRound()">
                             Proxima rodada
                         </button>
+                        <button type="button" class="secondary small" (click)="handleLeaveGame()">
+                            Sair do jogo
+                        </button>
                         <button type="button" class="secondary small history-action" (click)="openMoveHistory()">
                             Historico
                         </button>
@@ -332,7 +338,7 @@
         </div>
 
         <app-match-result-modal
-            [open]="match.isMatchOver && !hasDismissedMatchModal"
+            [open]="match.isMatchOver && !hasDismissedMatchModal && !match.abandonmentPlayer"
             [winnerTeam]="match.winnerTeam"
             [score]="match.score"
             (viewFinal)="hasDismissedMatchModal = true"
@@ -342,6 +348,23 @@
         <button *ngIf="!match.isSpectator" type="button" class="new-match-quiet" (click)="handleStartNewMatch()">
             Nova partida
         </button>
+        <button type="button" class="back-home-quiet" (click)="handleLeaveGame()">
+            Sair do jogo
+        </button>
+
+        <div *ngIf="match.abandonmentPlayer" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="abandon-title">
+            <div class="history-modal abandon-modal">
+                <div class="history-modal-header">
+                    <h2 id="abandon-title">Partida encerrada</h2>
+                </div>
+                <div class="history-modal-body abandon-modal-body">
+                    <p>{{ playerLabel(match.abandonmentPlayer) }} abandonou a partida.</p>
+                </div>
+                <div class="abandon-actions">
+                    <button type="button" class="primary small" (click)="handleLeaveGame()">OK</button>
+                </div>
+            </div>
+        </div>
 
         <div *ngIf="match.galoPopup" class="galo-overlay" role="dialog" aria-modal="true" aria-labelledby="galo-title">
             <div class="galo-modal">
