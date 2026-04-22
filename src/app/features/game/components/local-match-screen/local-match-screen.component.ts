@@ -1,13 +1,8 @@
 import { AfterViewChecked, Component, DoCheck, ElementRef, OnDestroy, ViewChild } from "@angular/core";
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
-<<<<<<< HEAD
-import { LocalMatchService } from "../../services/local-match.service";
-import type { MoveHistoryEntry, NetworkRole, PlayerNames, RecentReaction, RecentTurnEvent } from "../../services/local-match.service";
-=======
 import { MatchFacadeService } from "../../services/match-facade.service";
-import type { MoveHistoryEntry, PlayerNames, RecentTurnEvent } from "../../services/local-match.service";
->>>>>>> 791dc5d (wip)
+import type { MoveHistoryEntry, NetworkRole, PlayerNames, RecentReaction, RecentTurnEvent } from "../../services/local-match.service";
 
 function isPlayableMove(move: LegalMove): move is Extract<LegalMove, { kind: "play" }> {
     return move.kind === "play";
@@ -414,7 +409,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     }
 
     handleSendLaughReaction(): void {
-        this.match.sendLaughReaction();
+        this.match.sendReaction("🤣");
     }
 
     async handleStartNewMatch(): Promise<void> {
@@ -501,6 +496,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             this.setRoomMessage("", "Informe seu nome, o nome da sala e a senha.");
             return;
         }
+        if (this.selectedJoinRole === "spectator") {
+            this.setRoomMessage("", "Modo espectador ainda nao esta disponivel no backend.");
+            return;
+        }
 
         this.isRoomRequestPending = true;
         this.setRoomMessage("Entrando na sala...", "");
@@ -509,31 +508,6 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             const sessionResponse = await fetch(`${this.getNetworkApiBase()}/players/sessions/guest_session/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-<<<<<<< HEAD
-                body: JSON.stringify({
-                    password: this.joinRoomPassword,
-                    role: this.selectedJoinRole,
-                    spectator: this.selectedJoinRole === "spectator",
-                    playerName: this.joinPlayerName,
-                }),
-            });
-            const payload = (await response.json()) as {
-                readonly error?: string;
-                readonly role?: NetworkRole;
-                readonly humanPlayers?: readonly PlayerId[];
-                readonly playerNames?: PlayerNames;
-                readonly roomId?: string;
-            };
-
-            if (!response.ok || !payload.role || !payload.roomId) {
-                this.setRoomMessage("", payload.error ?? "Nao foi possivel entrar na sala.");
-                return;
-            }
-
-            this.openNetworkRoom(payload.roomId, payload.role, payload.humanPlayers ?? ["A", "B"], {
-                ...(payload.playerNames ?? {}),
-                ...(payload.role !== "spectator" ? { [payload.role]: this.joinPlayerName.trim() } : {}),
-=======
                 body: JSON.stringify({ nickname: this.joinPlayerName.trim() }),
             });
             const sessionPayload = (await parseApiResponse(sessionResponse)) as { readonly session_key?: string; readonly nickname?: readonly string[] | string };
@@ -551,7 +525,6 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                     password: this.joinRoomPassword,
                     role: this.selectedJoinRole,
                 }),
->>>>>>> 791dc5d (wip)
             });
             const payload = (await parseApiResponse(response)) as {
                 readonly detail?: string;
@@ -596,11 +569,6 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                 return;
             }
 
-<<<<<<< HEAD
-            this.roomInfo = payload.room;
-            this.selectedJoinRole = this.availableJoinRoles[0] ?? "spectator";
-            this.setRoomMessage("Escolha sua posicao ou entre como espectador.", "");
-=======
             this.roomInfo = {
                 roomId: payload.code,
                 playerNames: payload.player_names,
@@ -609,7 +577,6 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             };
             this.selectedJoinRole = this.availableJoinRoles[0] ?? "B";
             this.setRoomMessage("Escolha sua posicao e informe a senha.", "");
->>>>>>> 791dc5d (wip)
         } catch {
             this.setRoomMessage("", this.getRoomServerUnavailableMessage());
         } finally {
@@ -649,16 +616,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         return "Backend indisponivel.";
     }
 
-<<<<<<< HEAD
-    private openNetworkRoom(
-        roomId: string,
-        role: NetworkRole,
-        humanPlayers: readonly PlayerId[],
-        playerNames: PlayerNames,
-    ): void {
-=======
     private openNetworkRoom(roomId: string, role: PlayerId, sessionKey: string): void {
->>>>>>> 791dc5d (wip)
         const params = new URLSearchParams({
             room: roomId,
             role,
@@ -711,6 +669,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                 playerNames: payload.player_names,
                 occupiedRoles: payload.occupied_roles ?? [],
                 availableRoles: payload.available_roles ?? ["B", "C", "D"],
+                spectators: [],
             };
             this.match.setNetworkRoomInfo(payload.occupied_roles ?? [], payload.player_names ?? {});
         } catch {
@@ -897,6 +856,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.floatingEventTimeouts = [...this.floatingEventTimeouts, timeoutId];
     }
 
+    private recentEventKey(event: RecentTurnEvent): string {
+        return `${this.match.moveHistory.length}-${event.type}-${event.playerId}-${"points" in event ? event.points : 0}`;
+    }
+
     private queueReactionEvent(): void {
         const reaction = this.match.recentReaction;
         if (!reaction) {
@@ -915,19 +878,20 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             kind: "reaction",
             label: reaction.emoji,
         };
-        this.floatingEvents = [...this.floatingEvents, floatingEvent].slice(-5);
+        this.floatingEvents = [...this.floatingEvents, floatingEvent].slice(-4);
         const timeoutId = window.setTimeout(() => {
             this.floatingEvents = this.floatingEvents.filter((item) => item.id !== floatingEvent.id);
-        }, 1400);
+        }, 1300);
         this.floatingEventTimeouts = [...this.floatingEventTimeouts, timeoutId];
-    }
-
-    private recentEventKey(event: RecentTurnEvent): string {
-        return `${this.match.moveHistory.length}-${event.type}-${event.playerId}-${"points" in event ? event.points : 0}`;
     }
 
     private recentReactionKey(reaction: RecentReaction): string {
         return `${reaction.id}-${reaction.playerId}-${reaction.emoji}`;
+    }
+
+    private getTeamLabel(teamId: "AC" | "BD"): string {
+        const names = this.match.players.filter((player) => player.team === teamId).map((player) => player.name);
+        return names.length > 0 ? names.join(" / ") : teamId;
     }
 
     private clearFloatingEventTimeouts(): void {
@@ -935,11 +899,6 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             window.clearTimeout(timeoutId);
         }
         this.floatingEventTimeouts = [];
-    }
-
-    private getTeamLabel(teamId: "AC" | "BD"): string {
-        const members = this.match.players.filter((player) => player.team === teamId).map((player) => player.name);
-        return members.length > 0 ? members.join(" / ") : teamId;
     }
 
     private freezeMobileBottomRowHeight(): void {

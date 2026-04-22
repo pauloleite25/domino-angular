@@ -7,6 +7,7 @@ import type {
     MoveHistoryEntry,
     PlayerNames,
     PlayerView,
+    RecentReaction,
     RecentTurnEvent,
     RoundEndSummary,
 } from "./local-match.service";
@@ -461,6 +462,22 @@ export class MatchFacadeService implements OnDestroy {
         return this.isBackendMode ? this.onlineState.recentEvent : this.local.recentEvent;
     }
 
+    get recentReaction(): RecentReaction | null {
+        if (this.isBackendMode) {
+            return null;
+        }
+
+        return (this.local as LocalMatchService & { recentReaction?: RecentReaction | null }).recentReaction ?? null;
+    }
+
+    get isSpectator(): boolean {
+        if (this.isBackendMode) {
+            return false;
+        }
+
+        return (this.local as LocalMatchService & { isSpectator?: boolean }).isSpectator ?? false;
+    }
+
     get abandonmentPlayer(): PlayerId | null {
         if (!this.isBackendMode) {
             return null;
@@ -619,6 +636,15 @@ export class MatchFacadeService implements OnDestroy {
             this.socket?.close();
             this.socket = null;
         }
+    }
+
+    sendReaction(emoji: string): void {
+        if (this.isBackendMode) {
+            return;
+        }
+
+        const localWithReaction = this.local as LocalMatchService & { sendReaction?: (emoji: string) => void };
+        localWithReaction.sendReaction?.(emoji);
     }
 
     playHumanMove(move: LegalMove): void {
