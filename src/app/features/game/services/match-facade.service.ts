@@ -1,4 +1,5 @@
 import { Injectable, OnDestroy } from "@angular/core";
+import { Capacitor } from "@capacitor/core";
 import type { BoardSide, DominoTile, LegalMove, MatchState, PlayerId, RoundState, TeamId } from "../../../core/domino";
 import { LocalMatchService } from "./local-match.service";
 import type {
@@ -19,6 +20,17 @@ type BackendNetworkConfig = {
     readonly sessionKey: string;
     readonly apiBase: string;
 };
+
+const NETWORK_API_BASE_STORAGE_KEY = "domino.apiBase";
+const ANDROID_EMULATOR_API_BASE = "https://domino-backend-kq4p.onrender.com/api";
+
+function normalizeApiBase(value: string | null | undefined): string {
+    return (value ?? "").trim().replace(/\/+$/, "");
+}
+
+function getDefaultApiBase(): string {
+    return "https://domino-backend-kq4p.onrender.com/api";
+}
 
 type BackendRoomStatus = {
     readonly code: string;
@@ -756,11 +768,14 @@ export class MatchFacadeService implements OnDestroy {
             return null;
         }
 
+        const apiBase = normalizeApiBase(params.get("api")) || normalizeApiBase(window.localStorage.getItem(NETWORK_API_BASE_STORAGE_KEY)) || getDefaultApiBase();
+        window.localStorage.setItem(NETWORK_API_BASE_STORAGE_KEY, apiBase);
+
         return {
             roomCode,
             role,
             sessionKey,
-            apiBase: params.get("api")?.trim() || "/api",
+            apiBase,
         };
     }
 
@@ -865,11 +880,23 @@ export class MatchFacadeService implements OnDestroy {
     }
 
     private getWebSocketUrl(): string {
-        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-        const host = window.location.host;
         const roomCode = encodeURIComponent(this.backendNetworkConfig!.roomCode);
         const session = encodeURIComponent(this.backendNetworkConfig!.sessionKey);
-        return `${protocol}//${host}/ws/rooms/${roomCode}/?session=${session}`;
+        const apiBase = this.backendNetworkConfig!.apiBase;
+
+        if (apiBase.startsWith("/")) {
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            return `${protocol}//${window.location.host}/ws/rooms/${roomCode}/?session=${session}`;
+        }
+
+        try {
+            const apiUrl = new URL(apiBase, window.location.origin);
+            const protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
+            return `${protocol}//${apiUrl.host}/ws/rooms/${roomCode}/?session=${session}`;
+        } catch {
+            const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+            return `${protocol}//${window.location.host}/ws/rooms/${roomCode}/?session=${session}`;
+        }
     }
 
     private applyRealtimePayload(payload: RealtimePayload): void {

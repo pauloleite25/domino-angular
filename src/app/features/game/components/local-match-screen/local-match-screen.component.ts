@@ -1,4 +1,5 @@
 import { AfterViewChecked, Component, DoCheck, ElementRef, OnDestroy, ViewChild } from "@angular/core";
+import { Capacitor } from "@capacitor/core";
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
 import { MatchFacadeService } from "../../services/match-facade.service";
@@ -21,6 +22,17 @@ type RoomInfo = {
 };
 
 type JsonObject = Record<string, unknown>;
+
+const NETWORK_API_BASE_STORAGE_KEY = "domino.apiBase";
+const ANDROID_EMULATOR_API_BASE = "https://domino-backend-kq4p.onrender.com/api";
+
+function normalizeApiBase(value: string | null | undefined): string {
+    return (value ?? "").trim().replace(/\/+$/, "");
+}
+
+function getDefaultApiBase(): string {
+    return "https://domino-backend-kq4p.onrender.com/api";
+}
 
 async function parseApiResponse(response: Response): Promise<JsonObject> {
     const raw = await response.text();
@@ -67,6 +79,7 @@ type FloatingEvent = {
 })
 export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnDestroy {
     readonly reactionOptions = ["😀", "😂", "😮", "👏"];
+    readonly isAndroidApp = Capacitor.getPlatform() === "android";
 
     @ViewChild("mobileBottomRow") private mobileBottomRow?: ElementRef<HTMLElement>;
 
@@ -85,6 +98,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     roomStatusMessage = "";
     roomErrorMessage = "";
     isRoomRequestPending = false;
+    networkApiBase = this.resolveNetworkApiBase();
     turnSecondsLeft = 15;
     hasDismissedMatchModal = false;
     isHistoryOpen = false;
@@ -118,6 +132,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.previousActiveMatch = hasActiveMatch;
         this.queueFloatingEvent();
         this.queueReactionEvent();
+        this.startLobbyPolling();
 
         const turnKey = `${this.match.currentPlayer ?? "-"}-${this.match.roundState?.roundNumber ?? 0}-${this.match.isHumanTurn}`;
         if (turnKey === this.previousTurnKey) {
@@ -137,6 +152,10 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
     ngAfterViewChecked(): void {
         this.freezeMobileBottomRowHeight();
+    }
+
+    get isAndroidMobileStart(): boolean {
+        return this.isAndroidApp && window.innerWidth <= 1024;
     }
 
     get recentMoveHistory(): readonly MoveHistoryEntry[] {
@@ -602,15 +621,44 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     }
 
     private getNetworkApiBase(): string {
-        return "/api";
+        return this.prepareNetworkApiBase();
+    }
+
+    private resolveNetworkApiBase(): string {
+        const params = new URLSearchParams(window.location.search);
+        const fromQuery = normalizeApiBase(params.get("api"));
+        if (fromQuery) {
+            this.persistNetworkApiBase(fromQuery);
+            return fromQuery;
+        }
+
+        const fromStorage = normalizeApiBase(window.localStorage.getItem(NETWORK_API_BASE_STORAGE_KEY));
+        if (fromStorage) {
+            return fromStorage;
+        }
+
+        const fallback = getDefaultApiBase();
+        this.persistNetworkApiBase(fallback);
+        return fallback;
+    }
+
+    private prepareNetworkApiBase(): string {
+        const normalized = normalizeApiBase(this.networkApiBase) || getDefaultApiBase();
+        this.networkApiBase = normalized;
+        this.persistNetworkApiBase(normalized);
+        return normalized;
+    }
+
+    private persistNetworkApiBase(value: string): void {
+        window.localStorage.setItem(NETWORK_API_BASE_STORAGE_KEY, normalizeApiBase(value));
     }
 
     private getRoomServerUnavailableMessage(): string {
         if (window.location.port === "4201" || window.location.port === "4200") {
-            return "Backend indisponivel. Inicie o Angular com proxy e o Django em paralelo.";
+            return `Backend indisponivel em ${this.getNetworkApiBase()}. Inicie o Angular com proxy e o Django em paralelo, ou informe uma URL valida.`;
         }
 
-        return "Backend indisponivel.";
+        return `Backend indisponivel em ${this.getNetworkApiBase()}.`;
     }
 
     private openNetworkRoom(roomId: string, role: NetworkRole, sessionKey: string): void {
@@ -618,12 +666,13 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             room: roomId,
             role,
             session: sessionKey,
+            api: this.getNetworkApiBase(),
         });
         window.location.href = `${window.location.pathname}?${params.toString()}`;
     }
 
     private startLobbyPolling(): void {
-        if (!this.match.networkRoomId || !this.match.isNetworkHost || this.match.hasMatch) {
+        if (!this.match.networkRoomId || !this.match.isNetworkHost || this.match.hasMatch || this.lobbyPollId !== null) {
             return;
         }
 
@@ -661,14 +710,31 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                 return;
             }
 
+            const nextOccupiedRoles = payload.occupied_roles ?? [];
+            const nextPlayerNames = payload.player_names ?? {};
+            const previousOccupiedRoles = this.roomInfo?.occupiedRoles ?? [];
+            const previousOccupiedCount = previousOccupiedRoles.length;
+
             this.roomInfo = {
                 roomId: payload.code,
-                playerNames: payload.player_names,
-                occupiedRoles: payload.occupied_roles ?? [],
+                playerNames: nextPlayerNames,
+                occupiedRoles: nextOccupiedRoles,
                 availableRoles: payload.available_roles ?? ["B", "C", "D"],
                 spectators: [],
             };
-            this.match.setNetworkRoomInfo(payload.occupied_roles ?? [], payload.player_names ?? {});
+            this.match.setNetworkRoomInfo(nextOccupiedRoles, nextPlayerNames);
+
+            if (nextOccupiedRoles.length > previousOccupiedCount) {
+                const joinedRole = nextOccupiedRoles.find((role) => !previousOccupiedRoles.includes(role));
+                const joinedName = joinedRole ? nextPlayerNames[joinedRole] : undefined;
+                this.roomStatusMessage = joinedName
+                    ? `${joinedName} entrou na sala.`
+                    : `${nextOccupiedRoles.length} jogadores conectados na sala.`;
+            } else if (nextOccupiedRoles.length === 1) {
+                this.roomStatusMessage = 'Aguardando outro jogador entrar na sala.';
+            } else if (nextOccupiedRoles.length > 1 && !this.match.hasMatch) {
+                this.roomStatusMessage = `${nextOccupiedRoles.length} jogadores conectados na sala.`;
+            }
         } catch {
             // Mantem a tela usavel; a mensagem de erro aparece nas acoes de criar/entrar.
         }

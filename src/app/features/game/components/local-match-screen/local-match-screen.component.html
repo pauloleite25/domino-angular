@@ -1,6 +1,151 @@
-<main *ngIf="!match.hasMatch || !match.roundState || !match.currentPlayer; else activeMatch" class="start-screen">
-    <header class="start-header">
-        <div class="title-sign">
+<main *ngIf="!match.hasMatch || !match.roundState || !match.currentPlayer; else activeMatch" class="start-screen" [class.android-mobile-start]="isAndroidMobileStart">
+    <ng-container *ngIf="isAndroidMobileStart; else defaultStartContent">
+        <section class="android-home-stage">
+            <img class="android-home-table" src="assets/imagens%20home/mesa_domino_limpa.png" alt="Mesa de domino" />
+            <img class="android-home-decor" src="assets/imagens%20home/decorativas_completa.png" alt="Elementos decorativos do domino" />
+
+            <div class="android-home-content">
+                <img class="android-home-logo" src="assets/imagens%20home/logo.png" alt="Domino" />
+
+                <div *ngIf="!match.isNetworkGuest && !match.networkRoomId" class="android-home-actions">
+                    <button type="button" class="android-home-card" (click)="handleStartNewMatch()">
+                        <img src="assets/imagens%20home/vs_cpu.png" alt="Vs CPU" />
+                        <span class="sr-only">Vs CPU</span>
+                    </button>
+                    <button type="button" class="android-home-card" (click)="startPanel = 'create'">
+                        <img src="assets/imagens%20home/criar_sala.png" alt="Criar sala" />
+                        <span class="sr-only">Criar sala</span>
+                    </button>
+                    <button type="button" class="android-home-card" (click)="startPanel = 'join'">
+                        <img src="assets/imagens%20home/entrar_sala.png" alt="Entrar na sala" />
+                        <span class="sr-only">Entrar na sala</span>
+                    </button>
+                </div>
+
+                <div *ngIf="match.networkRoomId && !match.isNetworkGuest" class="android-room-banner">
+                    <p>Sala <strong>{{ match.networkRoomId }}</strong> criada. Compartilhe esse codigo e aguarde seus amigos entrarem para iniciar.</p>
+                    <div class="lobby-status compact android-lobby-banner-status">
+                        <span
+                            *ngFor="let player of lobbyPlayers"
+                            [class.occupied]="occupiedLobbyRoles.includes(player)"
+                            [class.empty]="!occupiedLobbyRoles.includes(player)">
+                            {{ player }}
+                            {{ occupiedLobbyRoles.includes(player) ? roomInfo?.playerNames?.[player] || match.networkPlayerNames[player] || 'humano' : 'aguardando' }}
+                        </span>
+                    </div>
+                    <button type="button" class="primary android-banner-button" [disabled]="!canStartNetworkRoomMatch" (click)="handleStartNewMatch()">
+                        Iniciar sala
+                    </button>
+                </div>
+
+                <div *ngIf="match.isNetworkGuest" class="android-room-banner guest">
+                    <p>Aguardando a partida da sala {{ match.networkRoomId }}.</p>
+                    <p>Quando o host iniciar, sua tela sera sincronizada automaticamente.</p>
+                </div>
+
+                <p *ngIf="roomStatusMessage" class="android-room-message status">{{ roomStatusMessage }}</p>
+                <p *ngIf="roomErrorMessage" class="android-room-message error">{{ roomErrorMessage }}</p>
+            </div>
+        </section>
+
+        <div *ngIf="!match.networkRoomId && startPanel !== 'menu'" class="android-home-modal-shell">
+            <div class="android-home-modal-backdrop" (click)="startPanel = 'menu'"></div>
+            <div class="android-home-modal" [class.join-mode]="startPanel === 'join'">
+                <button type="button" class="android-home-modal-close" (click)="startPanel = 'menu'">Fechar</button>
+
+                <form *ngIf="startPanel === 'create'" class="room-form android-room-form" (ngSubmit)="handleCreateRoom()">
+                    <div class="android-modal-top">
+                        <div class="android-modal-title-block">
+                            <div class="android-modal-icon create" aria-hidden="true"><img src="assets/imagens%20home/icone_cria_sala.png" alt="" /></div>
+                            <div class="android-modal-title-copy form-heading">
+                                <span>Criar</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="android-modal-body">
+                        <div class="android-modal-group">
+                            <label>
+                                Seu nome
+                                <input name="createPlayerName" [(ngModel)]="createPlayerName" autocomplete="name" maxlength="24" [disabled]="isRoomRequestPending" placeholder="ex: Paulo" />
+                            </label>
+                            <label>
+                                Senha
+                                <input name="createRoomPassword" [(ngModel)]="createRoomPassword" type="password" autocomplete="new-password" [disabled]="isRoomRequestPending" placeholder="Defina uma senha" />
+                            </label>
+                        </div>
+
+                        <div class="android-modal-group android-modal-group-secondary">
+                            <label>
+                                Codigo da sala
+                                <input name="createRoomName" [(ngModel)]="createRoomName" autocomplete="off" [disabled]="isRoomRequestPending" placeholder="ex: mesa-paulo" />
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="android-modal-actions">
+                        <button type="button" class="secondary small" [disabled]="isRoomRequestPending" (click)="startPanel = 'menu'">Cancelar</button>
+                        <button type="submit" class="primary small" [disabled]="isRoomRequestPending">Criar sala</button>
+                    </div>
+                </form>
+
+                <form *ngIf="startPanel === 'join'" class="room-form android-room-form" (ngSubmit)="handleJoinRoom()">
+                    <div class="android-modal-top">
+                        <div class="android-modal-title-block">
+                            <div class="android-modal-title-copy form-heading">
+                                <span>Entrar na sala</span>
+                                
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="android-modal-body join-layout">
+                        <div class="android-modal-group">
+                            <label>
+                                Seu nome
+                                <input name="joinPlayerName" [(ngModel)]="joinPlayerName" autocomplete="name" maxlength="24" [disabled]="isRoomRequestPending" placeholder="ex: Joao" />
+                            </label>
+                            <label>
+                                Codigo da sala
+                                <input name="joinRoomName" [(ngModel)]="joinRoomName" autocomplete="off" [disabled]="isRoomRequestPending" placeholder="ex: mesa-paulo" />
+                            </label>
+                        </div>
+
+                        <div class="android-modal-group android-modal-group-secondary">
+                            <label>
+                                Senha
+                                <input name="joinRoomPassword" [(ngModel)]="joinRoomPassword" type="password" autocomplete="current-password" [disabled]="isRoomRequestPending" placeholder="Senha da sala" />
+                            </label>
+                            <label>
+                                Posicao
+                                <select name="selectedJoinRole" [(ngModel)]="selectedJoinRole" [disabled]="isRoomRequestPending">
+                                    <option *ngFor="let role of availableJoinRoles" [ngValue]="role">Posicao {{ role }}</option>
+                                    <option [ngValue]="'spectator'">Espectador</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div *ngIf="shouldShowJoinRoomInfo" class="lobby-status compact android-lobby-status">
+                            <span *ngFor="let player of lobbyPlayers" [class.occupied]="occupiedLobbyRoles.includes(player)" [class.empty]="!occupiedLobbyRoles.includes(player)">
+                                {{ player }}
+                                {{ occupiedLobbyRoles.includes(player) ? roomInfo?.playerNames?.[player] || 'ocupado' : 'livre' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="android-modal-actions android-modal-actions-join">
+                        <button type="button" class="secondary small android-action-button" [disabled]="isRoomRequestPending" (click)="startPanel = 'menu'">Cancelar</button>
+                        <button type="button" class="secondary small android-lookup-button android-action-button" [disabled]="isRoomRequestPending" (click)="handleLookupJoinRoom()">Ver posicoes</button>
+                        <button type="submit" class="primary small android-action-button" [disabled]="isRoomRequestPending">Entrar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </ng-container>
+
+    <ng-template #defaultStartContent>
+    <header class="start-header" [class.android-mobile-header]="isAndroidMobileStart">
+        <div class="title-sign" [class.android-mobile-title-sign]="isAndroidMobileStart">
             <span class="sign-domino left" aria-hidden="true"></span>
             <div>
                 <p class="start-kicker">Mesa online</p>
@@ -8,11 +153,17 @@
             </div>
             <span class="sign-domino right" aria-hidden="true"></span>
         </div>
+        <div class="mobile-header-preview" aria-hidden="true" [class.android-mobile-preview]="isAndroidMobileStart">
+            <img
+                class="mobile-header-image"
+                src="assets/domino-players-menu.png"
+                alt="Pessoas jogando domino em uma mesa" />
+        </div>
         <p *ngIf="!match.isNetworkGuest">Crie uma sala, chame seus amigos ou comece uma mesa com CPUs.</p>
         <p *ngIf="match.isNetworkGuest">Aguardando a partida da sala {{ match.networkRoomId }}.</p>
     </header>
 
-    <section class="start-card">
+    <section class="start-card" [class.mobile-form-open]="!match.networkRoomId && startPanel !== 'menu'">
         <div class="start-overview">
             <div class="table-preview" aria-hidden="true">
                 <img
@@ -24,16 +175,16 @@
             <div class="start-actions">
                 <p class="action-label">Partida</p>
                 <h2>Escolha o jogo</h2>
-                <div *ngIf="!match.isNetworkGuest && !match.networkRoomId" class="menu-actions">
-                    <button type="button" class="menu-button cpu" (click)="handleStartNewMatch()">
+                <div *ngIf="!match.isNetworkGuest && !match.networkRoomId" class="menu-actions" [class.android-mobile-menu-actions]="isAndroidMobileStart">
+                    <button type="button" class="menu-button cpu" [class.android-mobile-menu-button]="isAndroidMobileStart" (click)="handleStartNewMatch()">
                         <span>VS CPU</span>
                         <small>Entrar direto contra bots</small>
                     </button>
-                    <button type="button" class="menu-button create" (click)="startPanel = 'create'">
+                    <button type="button" class="menu-button create" [class.android-mobile-menu-button]="isAndroidMobileStart" (click)="startPanel = 'create'">
                         <span>Criar sala</span>
                         <small>Monte uma mesa privada</small>
                     </button>
-                    <button type="button" class="menu-button join" (click)="startPanel = 'join'">
+                    <button type="button" class="menu-button join" [class.android-mobile-menu-button]="isAndroidMobileStart" (click)="startPanel = 'join'">
                         <span>Entrar na sala</span>
                         <small>Use codigo, senha e posicao</small>
                     </button>
@@ -99,6 +250,16 @@
                         autocomplete="new-password"
                         [disabled]="isRoomRequestPending" />
                 </label>
+                <label class="server-config">
+                    Servidor backend
+                    <input
+                        name="createApiBase"
+                        [(ngModel)]="networkApiBase"
+                        autocomplete="off"
+                        [disabled]="isRoomRequestPending"
+                        placeholder="/api ou http://10.0.2.2:8000/api" />
+                    <small>Use <strong>/api</strong> no navegador com proxy. No Android, o padrao do emulador e <strong>http://10.0.2.2:8000/api</strong>.</small>
+                </label>
                 <button type="submit" class="primary small" [disabled]="isRoomRequestPending">Criar sala</button>
                 <button type="button" class="secondary small" [disabled]="isRoomRequestPending" (click)="startPanel = 'menu'">
                     Voltar
@@ -162,6 +323,16 @@
                         <option [ngValue]="'spectator'">Espectador</option>
                     </select>
                 </label>
+                <label class="server-config">
+                    Servidor backend
+                    <input
+                        name="joinApiBase"
+                        [(ngModel)]="networkApiBase"
+                        autocomplete="off"
+                        [disabled]="isRoomRequestPending"
+                        placeholder="/api ou http://10.0.2.2:8000/api" />
+                    <small>Use o mesmo endereco do Django. Exemplo no emulador Android: <strong>http://10.0.2.2:8000/api</strong>.</small>
+                </label>
                 <button type="submit" class="primary small" [disabled]="isRoomRequestPending">Entrar</button>
                 <button type="button" class="secondary small" [disabled]="isRoomRequestPending" (click)="startPanel = 'menu'">
                     Voltar
@@ -172,6 +343,8 @@
         <p *ngIf="roomStatusMessage" class="room-status">{{ roomStatusMessage }}</p>
         <p *ngIf="roomErrorMessage" class="room-error">{{ roomErrorMessage }}</p>
     </section>
+
+    </ng-template>
 </main>
 
 <ng-template #activeMatch>

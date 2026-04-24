@@ -11,7 +11,17 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "legacy:start": "node scripts/lan-duo-server.mjs",
-    "legacy:dev": "node scripts/dev-with-rooms.mjs"
+    "legacy:dev": "node scripts/dev-with-rooms.mjs",
+    "build:android": "ng build --configuration production",
+    "cap:sync": "npx cap sync android",
+    "android:sync": "npm run build:android && npx cap sync android",
+    "android:open": "npx cap open android",
+    "sync:ide": "node .aiox-core/infrastructure/scripts/ide-sync/index.js sync",
+    "sync:ide:check": "node .aiox-core/infrastructure/scripts/ide-sync/index.js validate --strict",
+    "sync:skills:codex": "node .aiox-core/infrastructure/scripts/codex-skills-sync/index.js",
+    "sync:skills:codex:global": "node .aiox-core/infrastructure/scripts/codex-skills-sync/index.js --global",
+    "validate:structure": "node .aiox-core/infrastructure/scripts/validate-paths.js",
+    "validate:agents": "node .aiox-core/infrastructure/scripts/validate-agents.js"
   },
   "private": true,
   "dependencies": {
@@ -23,6 +33,9 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"
