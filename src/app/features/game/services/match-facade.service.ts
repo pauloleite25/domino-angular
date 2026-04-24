@@ -5,6 +5,7 @@ import type {
     BoardBranches,
     GaloPopup,
     MoveHistoryEntry,
+    NetworkRole,
     PlayerNames,
     PlayerView,
     RecentReaction,
@@ -14,7 +15,7 @@ import type {
 
 type BackendNetworkConfig = {
     readonly roomCode: string;
-    readonly role: PlayerId;
+    readonly role: NetworkRole;
     readonly sessionKey: string;
     readonly apiBase: string;
 };
@@ -36,6 +37,8 @@ type BackendHistoryEvent = {
     readonly player?: PlayerId;
     readonly winner_player?: PlayerId | null;
     readonly winner_team?: TeamId | null;
+    readonly emoji?: string;
+    readonly sound?: "none" | "laugh";
     readonly tile?: readonly [number, number];
     readonly phase?: "opening" | "end";
     readonly side?: BoardSide;
@@ -142,6 +145,7 @@ type OnlineState = {
     readonly privateState: BackendPrivateMatchState | null;
     readonly moveHistory: readonly MoveHistoryEntry[];
     readonly recentEvent: RecentTurnEvent | null;
+    readonly recentReaction: RecentReaction | null;
     readonly galoPopup: GaloPopup | null;
 };
 
@@ -208,6 +212,7 @@ export class MatchFacadeService implements OnDestroy {
         privateState: null,
         moveHistory: [],
         recentEvent: null,
+        recentReaction: null,
         galoPopup: null,
     };
     private dismissedGaloEventKey = "";
@@ -464,7 +469,7 @@ export class MatchFacadeService implements OnDestroy {
 
     get recentReaction(): RecentReaction | null {
         if (this.isBackendMode) {
-            return null;
+            return this.onlineState.recentReaction;
         }
 
         return (this.local as LocalMatchService & { recentReaction?: RecentReaction | null }).recentReaction ?? null;
@@ -472,7 +477,7 @@ export class MatchFacadeService implements OnDestroy {
 
     get isSpectator(): boolean {
         if (this.isBackendMode) {
-            return false;
+            return this.backendNetworkConfig?.role === "spectator";
         }
 
         return (this.local as LocalMatchService & { isSpectator?: boolean }).isSpectator ?? false;
@@ -529,11 +534,13 @@ export class MatchFacadeService implements OnDestroy {
     }
 
     get humanPlayer(): PlayerId {
-        return this.isBackendMode ? (this.backendNetworkConfig?.role ?? "A") : this.local.humanPlayer;
+        return this.isBackendMode
+            ? (this.backendNetworkConfig?.role === "spectator" ? "A" : (this.backendNetworkConfig?.role ?? "A"))
+            : this.local.humanPlayer;
     }
 
     get humanPlayerName(): string {
-        return this.isBackendMode ? "Voce" : this.local.humanPlayerName;
+        return this.isBackendMode ? (this.isSpectator ? "Espectador" : "Voce") : this.local.humanPlayerName;
     }
 
     playerLabel(playerId: PlayerId | null): string {
@@ -627,11 +634,13 @@ export class MatchFacadeService implements OnDestroy {
         }
 
         try {
-            await fetch(`${this.backendNetworkConfig.apiBase}/games/rooms/${encodeURIComponent(this.backendNetworkConfig.roomCode)}/leave/`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ session_key: this.backendNetworkConfig.sessionKey }),
-            });
+            if (!this.isSpectator) {
+                await fetch(`${this.backendNetworkConfig.apiBase}/games/rooms/${encodeURIComponent(this.backendNetworkConfig.roomCode)}/leave/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ session_key: this.backendNetworkConfig.sessionKey }),
+                });
+            }
         } finally {
             this.socket?.close();
             this.socket = null;
@@ -640,6 +649,7 @@ export class MatchFacadeService implements OnDestroy {
 
     sendReaction(emoji: string): void {
         if (this.isBackendMode) {
+            void this.submitBackendReaction(emoji);
             return;
         }
 
@@ -692,21 +702,15 @@ export class MatchFacadeService implements OnDestroy {
                     privateState: null,
                     moveHistory: [],
                     recentEvent: null,
+                    recentReaction: null,
                     galoPopup: null,
                 };
                 this.optimisticState = null;
                 return;
             }
 
-            const [matchResponse, privateResponse] = await Promise.all([
-                fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${roomInfo.current_match_id}/status/`),
-                fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${roomInfo.current_match_id}/my_state/`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ session_key: this.backendNetworkConfig.sessionKey }),
-                }),
-            ]);
-            if (!matchResponse.ok || !privateResponse.ok) {
+            const matchResponse = await fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${roomInfo.current_match_id}/status/`);
+            if (!matchResponse.ok) {
                 this.onlineState = {
                     ...this.onlineState,
                     roomInfo,
@@ -715,7 +719,22 @@ export class MatchFacadeService implements OnDestroy {
             }
 
             const matchStatus = (await matchResponse.json()) as BackendMatchStatus;
-            const privateState = (await privateResponse.json()) as BackendPrivateMatchState;
+            let privateState: BackendPrivateMatchState | null = null;
+            if (!this.isSpectator) {
+                const privateResponse = await fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${roomInfo.current_match_id}/my_state/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ session_key: this.backendNetworkConfig.sessionKey }),
+                });
+                if (!privateResponse.ok) {
+                    this.onlineState = {
+                        ...this.onlineState,
+                        roomInfo,
+                    };
+                    return;
+                }
+                privateState = (await privateResponse.json()) as BackendPrivateMatchState;
+            }
             this.applyBackendState(roomInfo, matchStatus, privateState);
         } catch {
             // O polling tenta novamente silenciosamente.
@@ -733,7 +752,7 @@ export class MatchFacadeService implements OnDestroy {
         const roomCode = params.get("room")?.trim() ?? "";
         const role = params.get("role");
         const sessionKey = params.get("session")?.trim() ?? "";
-        if (!roomCode || !sessionKey || !this.isPlayerId(role)) {
+        if (!roomCode || !sessionKey || !this.isNetworkRole(role)) {
             return null;
         }
 
@@ -747,6 +766,10 @@ export class MatchFacadeService implements OnDestroy {
 
     private isPlayerId(value: string | null): value is PlayerId {
         return value === "A" || value === "B" || value === "C" || value === "D";
+    }
+
+    private isNetworkRole(value: string | null): value is NetworkRole {
+        return this.isPlayerId(value) || value === "spectator";
     }
 
     private startNetworkSync(): void {
@@ -859,6 +882,7 @@ export class MatchFacadeService implements OnDestroy {
                 privateState: null,
                 moveHistory: [],
                 recentEvent: null,
+                recentReaction: null,
                 galoPopup: null,
             };
             return;
@@ -869,15 +893,19 @@ export class MatchFacadeService implements OnDestroy {
             return;
         }
 
-        this.optimisticState = null;
-        this.onlineState = {
+        const nextRecentReaction = payload.match.history.length > 0 ? this.mapRecentReaction(payload.match.history[payload.match.history.length - 1], payload.match.history.length) : null;
+        const nextState: OnlineState = {
             ...this.onlineState,
             roomInfo: payload.room,
             matchStatus: payload.match,
             privateState: this.onlineState.privateState,
             moveHistory: payload.match.history.map((event, index) => this.mapMoveHistoryEntry(event, index + 1)),
             recentEvent: payload.match.history.length > 0 ? this.mapRecentEvent(payload.match.history[payload.match.history.length - 1]) : null,
+            recentReaction: nextRecentReaction,
         };
+        this.playOnlineStateSounds(this.onlineState, nextState);
+        this.optimisticState = null;
+        this.onlineState = nextState;
     }
 
     private buildBoardBranches(): BoardBranches {
@@ -897,7 +925,7 @@ export class MatchFacadeService implements OnDestroy {
     private buildRoundState(): RoundState | null {
         const matchStatus = this.onlineState.matchStatus;
         const privateState = this.onlineState.privateState;
-        if (!matchStatus || !privateState) {
+        if (!matchStatus) {
             return null;
         }
 
@@ -907,7 +935,9 @@ export class MatchFacadeService implements OnDestroy {
             C: createPlaceholderHand(matchStatus.participants.find((item) => item.role === "C")?.hand_count ?? 0),
             D: createPlaceholderHand(matchStatus.participants.find((item) => item.role === "D")?.hand_count ?? 0),
         };
-        hands[privateState.player.role] = privateState.player.hand_state.map(toTile);
+        if (privateState) {
+            hands[privateState.player.role] = privateState.player.hand_state.map(toTile);
+        }
 
         return {
             roundNumber: matchStatus.round.round_number,
@@ -1066,7 +1096,7 @@ export class MatchFacadeService implements OnDestroy {
     }
 
     private async submitBackendMove(move: LegalMove): Promise<void> {
-        if (!this.backendNetworkConfig || !this.onlineState.matchStatus) {
+        if (!this.backendNetworkConfig || !this.onlineState.matchStatus || this.isSpectator) {
             return;
         }
 
@@ -1094,15 +1124,33 @@ export class MatchFacadeService implements OnDestroy {
         }
     }
 
+    private async submitBackendReaction(emoji: string): Promise<void> {
+        if (!this.backendNetworkConfig || !this.onlineState.matchStatus || !emoji.trim()) {
+            return;
+        }
+
+        const sound = emoji === "🤣" || emoji === "😆" ? "laugh" : "none";
+        await fetch(`${this.backendNetworkConfig.apiBase}/games/matches/${this.onlineState.matchStatus.id}/react/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                session_key: this.backendNetworkConfig.sessionKey,
+                emoji,
+                sound,
+            }),
+        });
+    }
+
     private applyBackendState(
         roomInfo: BackendRoomStatus,
         matchStatus: BackendMatchStatus,
-        privateState: BackendPrivateMatchState,
+        privateState: BackendPrivateMatchState | null,
     ): void {
         const moveHistory = matchStatus.history.map((event, index) => this.mapMoveHistoryEntry(event, index + 1));
         const latestEvent = matchStatus.history[matchStatus.history.length - 1] ?? null;
         const latestEventKey = latestEvent ? `${matchStatus.id}-${matchStatus.history.length}-${latestEvent.event}-${latestEvent.round_number ?? 0}` : "";
         const recentEvent = latestEvent ? this.mapRecentEvent(latestEvent) : null;
+        const recentReaction = latestEvent ? this.mapRecentReaction(latestEvent, matchStatus.history.length) : null;
         const galoPopup =
             latestEvent && latestEvent.event === "tile_played" && (latestEvent.galo_points ?? 0) > 0 && latestEventKey !== this.dismissedGaloEventKey
                 ? {
@@ -1114,15 +1162,18 @@ export class MatchFacadeService implements OnDestroy {
                 : this.onlineState.galoPopup;
 
         this.lastHistoryEventKey = latestEventKey;
-        this.optimisticState = null;
-        this.onlineState = {
+        const nextState: OnlineState = {
             roomInfo,
             matchStatus,
             privateState,
             moveHistory,
             recentEvent,
+            recentReaction,
             galoPopup,
         };
+        this.playOnlineStateSounds(this.onlineState, nextState);
+        this.optimisticState = null;
+        this.onlineState = nextState;
     }
 
     private mapMoveHistoryEntry(event: BackendHistoryEvent, id: number): MoveHistoryEntry {
@@ -1191,6 +1242,19 @@ export class MatchFacadeService implements OnDestroy {
         };
     }
 
+    private mapRecentReaction(event: BackendHistoryEvent, id: number): RecentReaction | null {
+        if (event.event !== "reaction_sent" || !event.player || !event.emoji) {
+            return null;
+        }
+
+        return {
+            id,
+            playerId: event.player,
+            emoji: event.emoji,
+            sound: event.sound ?? "none",
+        };
+    }
+
     private mapRecentEvent(event: BackendHistoryEvent): RecentTurnEvent | null {
         if (event.event === "turn_passed" && event.player) {
             return {
@@ -1219,5 +1283,84 @@ export class MatchFacadeService implements OnDestroy {
         }
 
         return null;
+    }
+
+    private playOnlineStateSounds(previousState: OnlineState, nextState: OnlineState): void {
+        const previousRoundNumber = previousState.matchStatus?.round.round_number ?? null;
+        const nextRoundNumber = nextState.matchStatus?.round.round_number ?? null;
+        const didStartMatch = previousState.matchStatus === null && nextState.matchStatus !== null;
+        const didAdvanceRound =
+            previousRoundNumber !== null &&
+            nextRoundNumber !== null &&
+            nextRoundNumber > previousRoundNumber &&
+            nextState.matchStatus?.round.last_round_result === null;
+
+        if (didStartMatch || didAdvanceRound) {
+            this.playSound("shuffle");
+        }
+
+        const previousHistoryLength = previousState.moveHistory.length;
+        const nextHistoryLength = nextState.moveHistory.length;
+        const didReceiveNewHistoryEntry = nextHistoryLength > previousHistoryLength;
+        const previousRecentEventKey = this.getRecentEventSoundKey(previousState.recentEvent);
+        const nextRecentEventKey = this.getRecentEventSoundKey(nextState.recentEvent);
+        if (didReceiveNewHistoryEntry && nextRecentEventKey !== null && nextRecentEventKey !== previousRecentEventKey) {
+            if (nextState.recentEvent?.type === "play" || nextState.recentEvent?.type === "score") {
+                this.playSound("tile");
+            }
+            if (
+                (nextState.recentEvent?.type === "score" && nextState.recentEvent.points > 0) ||
+                (nextState.recentEvent?.type === "pass" && nextState.recentEvent.points > 0)
+            ) {
+                this.playSound("point");
+            }
+        }
+
+        const previousReactionKey = previousState.recentReaction
+            ? `${previousState.recentReaction.id}-${previousState.recentReaction.sound}`
+            : null;
+        const nextReactionKey = nextState.recentReaction
+            ? `${nextState.recentReaction.id}-${nextState.recentReaction.sound}`
+            : null;
+        if (
+            nextReactionKey !== null &&
+            nextReactionKey !== previousReactionKey &&
+            nextState.recentReaction?.sound === "laugh"
+        ) {
+            this.playSound("laugh");
+        }
+
+        const previousGaloId = previousState.galoPopup?.id ?? null;
+        const nextGaloId = nextState.galoPopup?.id ?? null;
+        if (nextGaloId !== null && nextGaloId !== previousGaloId) {
+            this.playSound("galo");
+        }
+    }
+
+    private getRecentEventSoundKey(event: RecentTurnEvent | null): string | null {
+        if (event === null) {
+            return null;
+        }
+
+        return `${event.type}-${event.playerId}-${"points" in event ? event.points : 0}`;
+    }
+
+    private playSound(kind: "tile" | "shuffle" | "point" | "galo" | "laugh"): void {
+        if (typeof Audio === "undefined") {
+            return;
+        }
+
+        const sourceByKind: Record<typeof kind, string> = {
+            tile: "assets/sons/jogando_new.mp3",
+            shuffle: "assets/sons/embaralhando.mp3.mp3",
+            point: "assets/sons/ponto coin.mp3.mp3",
+            galo: "assets/sons/galo.mp3.mp3",
+            laugh: "assets/sons/zoeira-risada-do-bandido.mp3",
+        };
+        const audio = new Audio(sourceByKind[kind]);
+        audio.volume = kind === "shuffle" ? 0.55 : kind === "laugh" ? 0.85 : 0.75;
+        void audio.play().catch(() => {
+            // Alguns navegadores bloqueiam audio antes da primeira interacao.
+        });
     }
 }

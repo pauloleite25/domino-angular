@@ -496,10 +496,6 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             this.setRoomMessage("", "Informe seu nome, o nome da sala e a senha.");
             return;
         }
-        if (this.selectedJoinRole === "spectator") {
-            this.setRoomMessage("", "Modo espectador ainda nao esta disponivel no backend.");
-            return;
-        }
 
         this.isRoomRequestPending = true;
         this.setRoomMessage("Entrando na sala...", "");
@@ -517,13 +513,14 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
                 return;
             }
 
-            const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/${encodeURIComponent(roomId)}/join/`, {
+            const isSpectator = this.selectedJoinRole === "spectator";
+            const response = await fetch(`${this.getNetworkApiBase()}/games/rooms/${encodeURIComponent(roomId)}/${isSpectator ? "spectate" : "join"}/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     session_key: sessionPayload.session_key,
                     password: this.joinRoomPassword,
-                    role: this.selectedJoinRole,
+                    ...(isSpectator ? {} : { role: this.selectedJoinRole }),
                 }),
             });
             const payload = (await parseApiResponse(response)) as {
@@ -616,7 +613,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         return "Backend indisponivel.";
     }
 
-    private openNetworkRoom(roomId: string, role: PlayerId, sessionKey: string): void {
+    private openNetworkRoom(roomId: string, role: NetworkRole, sessionKey: string): void {
         const params = new URLSearchParams({
             room: roomId,
             role,
