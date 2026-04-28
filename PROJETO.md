@@ -32,6 +32,26 @@ Para rodar o servidor que serve o build:
 npm start
 ```
 
+## Hardening recente
+
+As ultimas correcoes de seguranca trataram os principais pontos do fluxo online casual:
+
+- o frontend nao aceita mais `apiBase` arbitrario vindo da URL ou de `localStorage`; agora so usa origens confiaveis
+- a `session_key` nao fica mais exposta na URL da pagina
+- a `session_key` do modo online fica em `sessionStorage` por aba, com limpeza quando a sessao perde validade ou o jogador sai da sala
+- o WebSocket nao envia mais `session_key` na URL; a autenticacao agora acontece pela primeira mensagem `auth`
+- mensagens de erro mostradas ao usuario passaram a ser controladas no frontend, sem repassar `detail` bruto da API
+- logs de rede do multiplayer ficaram restritos ao modo de desenvolvimento
+
+Arquivos principais dessas correcoes:
+
+- `src/app/features/game/services/network-api-base.util.ts`
+- `src/app/features/game/services/backend-session-storage.util.ts`
+- `src/app/features/game/services/match-facade.service.ts`
+- `src/app/features/game/components/local-match-screen/local-match-screen.component.ts`
+
+O contrato correspondente do backend realtime foi documentado em `../backend-domino/BACKEND_DOMINO.md`.
+
 ## O Que O Jogo Faz
 
 O projeto permite:

@@ -3,7 +3,14 @@ import { Capacitor } from "@capacitor/core";
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
 import { MatchFacadeService } from "../../services/match-facade.service";
+import { persistBackendSession } from "../../services/backend-session-storage.util";
 import type { MoveHistoryEntry, NetworkRole, PlayerNames, RecentReaction, RecentTurnEvent } from "../../services/local-match.service";
+import {
+    getDefaultBackendApiBase,
+    getTrustedApiBaseOrFallback,
+    persistTrustedApiBase,
+    resolveTrustedApiBase,
+} from "../../services/network-api-base.util";
 
 function isPlayableMove(move: LegalMove): move is Extract<LegalMove, { kind: "play" }> {
     return move.kind === "play";
@@ -23,17 +30,6 @@ type RoomInfo = {
 
 type JsonObject = Record<string, unknown>;
 
-const NETWORK_API_BASE_STORAGE_KEY = "domino.apiBase";
-const ANDROID_EMULATOR_API_BASE = "https://domino-backend-kq4p.onrender.com/api";
-
-function normalizeApiBase(value: string | null | undefined): string {
-    return (value ?? "").trim().replace(/\/+$/, "");
-}
-
-function getDefaultApiBase(): string {
-    return "https://domino-backend-kq4p.onrender.com/api";
-}
-
 async function parseApiResponse(response: Response): Promise<JsonObject> {
     const raw = await response.text();
     if (!raw.trim()) {
@@ -47,18 +43,42 @@ async function parseApiResponse(response: Response): Promise<JsonObject> {
     }
 }
 
-function readApiError(payload: JsonObject, fallback: string): string {
-    const detail = payload["detail"];
-    if (typeof detail === "string" && detail.trim()) {
-        return detail;
+function readApiError(response: Response, payload: JsonObject, fallback: string): string {
+    if (response.status === 401) {
+        return "Nao foi possivel autenticar sua sessao.";
     }
 
-    for (const value of Object.values(payload)) {
-        if (Array.isArray(value) && typeof value[0] === "string") {
-            return value[0];
+    if (response.status === 403) {
+        return "Voce nao tem permissao para concluir esta acao.";
+    }
+
+    if (response.status === 404) {
+        return "Sala nao encontrada.";
+    }
+
+    if (response.status === 429) {
+        return "Muitas tentativas em sequencia. Aguarde um pouco e tente novamente.";
+    }
+
+    if (response.status >= 500) {
+        return "O servidor encontrou um erro ao processar sua solicitacao.";
+    }
+
+    if (response.status === 400) {
+        if ("nickname" in payload) {
+            return "Revise o nome informado para continuar.";
         }
-        if (typeof value === "string" && value.trim()) {
-            return value;
+        if ("password" in payload) {
+            return "A senha informada e invalida.";
+        }
+        if ("role" in payload) {
+            return "A posicao escolhida nao esta disponivel.";
+        }
+        if ("name" in payload) {
+            return "Revise o codigo da sala informado.";
+        }
+        if ("session_key" in payload) {
+            return "Sua sessao nao e mais valida. Entre novamente na sala.";
         }
     }
 
@@ -475,8 +495,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             });
             const sessionPayload = (await parseApiResponse(sessionResponse)) as { readonly session_key?: string; readonly nickname?: readonly string[] | string };
             if (!sessionResponse.ok || !sessionPayload.session_key) {
-                const sessionError = Array.isArray(sessionPayload.nickname) ? sessionPayload.nickname[0] : sessionPayload.nickname;
-                this.setRoomMessage("", sessionError ?? readApiError(sessionPayload, "Nao foi possivel criar sua sessao casual."));
+                this.setRoomMessage("", readApiError(sessionResponse, sessionPayload, "Nao foi possivel criar sua sessao casual."));
                 return;
             }
 
@@ -497,7 +516,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             };
 
             if (!response.ok || !payload.code) {
-                this.setRoomMessage("", readApiError(payload, "Nao foi possivel criar a sala."));
+                this.setRoomMessage("", readApiError(response, payload, "Nao foi possivel criar a sala."));
                 return;
             }
 
@@ -527,8 +546,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             });
             const sessionPayload = (await parseApiResponse(sessionResponse)) as { readonly session_key?: string; readonly nickname?: readonly string[] | string };
             if (!sessionResponse.ok || !sessionPayload.session_key) {
-                const sessionError = Array.isArray(sessionPayload.nickname) ? sessionPayload.nickname[0] : sessionPayload.nickname;
-                this.setRoomMessage("", sessionError ?? readApiError(sessionPayload, "Nao foi possivel criar sua sessao casual."));
+                this.setRoomMessage("", readApiError(sessionResponse, sessionPayload, "Nao foi possivel criar sua sessao casual."));
                 return;
             }
 
@@ -548,7 +566,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             };
 
             if (!response.ok) {
-                this.setRoomMessage("", readApiError(payload, "Nao foi possivel entrar na sala."));
+                this.setRoomMessage("", readApiError(response, payload, "Nao foi possivel entrar na sala."));
                 return;
             }
 
@@ -581,7 +599,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
             if (!response.ok || !payload.code) {
                 this.roomInfo = null;
-                this.setRoomMessage("", readApiError(payload, "Sala nao encontrada."));
+                this.setRoomMessage("", readApiError(response, payload, "Sala nao encontrada."));
                 return;
             }
 
@@ -626,31 +644,23 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
     private resolveNetworkApiBase(): string {
         const params = new URLSearchParams(window.location.search);
-        const fromQuery = normalizeApiBase(params.get("api"));
-        if (fromQuery) {
-            this.persistNetworkApiBase(fromQuery);
-            return fromQuery;
-        }
-
-        const fromStorage = normalizeApiBase(window.localStorage.getItem(NETWORK_API_BASE_STORAGE_KEY));
-        if (fromStorage) {
-            return fromStorage;
-        }
-
-        const fallback = getDefaultApiBase();
-        this.persistNetworkApiBase(fallback);
-        return fallback;
+        return resolveTrustedApiBase({
+            queryValue: params.get("api"),
+            fallbackApiBase: getDefaultBackendApiBase(),
+        });
     }
 
     private prepareNetworkApiBase(): string {
-        const normalized = normalizeApiBase(this.networkApiBase) || getDefaultApiBase();
+        const normalized = getTrustedApiBaseOrFallback(this.networkApiBase, getDefaultBackendApiBase());
         this.networkApiBase = normalized;
         this.persistNetworkApiBase(normalized);
         return normalized;
     }
 
     private persistNetworkApiBase(value: string): void {
-        window.localStorage.setItem(NETWORK_API_BASE_STORAGE_KEY, normalizeApiBase(value));
+        this.networkApiBase = persistTrustedApiBase(value, {
+            fallbackApiBase: getDefaultBackendApiBase(),
+        });
     }
 
     private getRoomServerUnavailableMessage(): string {
@@ -662,11 +672,18 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     }
 
     private openNetworkRoom(roomId: string, role: NetworkRole, sessionKey: string): void {
+        const apiBase = this.getNetworkApiBase();
+        persistBackendSession({
+            roomCode: roomId,
+            role,
+            apiBase,
+            sessionKey,
+        });
+
         const params = new URLSearchParams({
             room: roomId,
             role,
-            session: sessionKey,
-            api: this.getNetworkApiBase(),
+            api: apiBase,
         });
         window.location.href = `${window.location.pathname}?${params.toString()}`;
     }

@@ -1,7 +1,9 @@
-import { Injectable, OnDestroy } from "@angular/core";
+import { Injectable, OnDestroy, isDevMode } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import type { BoardSide, DominoTile, LegalMove, MatchState, PlayerId, RoundState, TeamId } from "../../../core/domino";
 import { LocalMatchService } from "./local-match.service";
+import { clearBackendSession, persistBackendSession, readBackendSessionKey } from "./backend-session-storage.util";
+import { getDefaultBackendApiBase, resolveTrustedApiBase } from "./network-api-base.util";
 import type {
     BoardBranches,
     GaloPopup,
@@ -20,17 +22,6 @@ type BackendNetworkConfig = {
     readonly sessionKey: string;
     readonly apiBase: string;
 };
-
-const NETWORK_API_BASE_STORAGE_KEY = "domino.apiBase";
-const ANDROID_EMULATOR_API_BASE = "https://domino-backend-kq4p.onrender.com/api";
-
-function normalizeApiBase(value: string | null | undefined): string {
-    return (value ?? "").trim().replace(/\/+$/, "");
-}
-
-function getDefaultApiBase(): string {
-    return "https://domino-backend-kq4p.onrender.com/api";
-}
 
 type BackendRoomStatus = {
     readonly code: string;
@@ -654,6 +645,7 @@ export class MatchFacadeService implements OnDestroy {
                 });
             }
         } finally {
+            clearBackendSession();
             this.socket?.close();
             this.socket = null;
         }
@@ -763,13 +755,33 @@ export class MatchFacadeService implements OnDestroy {
         const params = new URLSearchParams(window.location.search);
         const roomCode = params.get("room")?.trim() ?? "";
         const role = params.get("role");
-        const sessionKey = params.get("session")?.trim() ?? "";
-        if (!roomCode || !sessionKey || !this.isNetworkRole(role)) {
+        if (!roomCode || !this.isNetworkRole(role)) {
             return null;
         }
 
-        const apiBase = normalizeApiBase(params.get("api")) || normalizeApiBase(window.localStorage.getItem(NETWORK_API_BASE_STORAGE_KEY)) || getDefaultApiBase();
-        window.localStorage.setItem(NETWORK_API_BASE_STORAGE_KEY, apiBase);
+        const apiBase = resolveTrustedApiBase({
+            queryValue: params.get("api"),
+            fallbackApiBase: getDefaultBackendApiBase(),
+        });
+        const sessionKeyFromQuery = params.get("session")?.trim() ?? "";
+        if (sessionKeyFromQuery) {
+            persistBackendSession({
+                roomCode,
+                role,
+                apiBase,
+                sessionKey: sessionKeyFromQuery,
+            });
+            this.removeSessionFromUrl(params);
+        }
+
+        const sessionKey = sessionKeyFromQuery || readBackendSessionKey({
+            roomCode,
+            role,
+            apiBase,
+        });
+        if (!sessionKey) {
+            return null;
+        }
 
         return {
             roomCode,
@@ -795,7 +807,7 @@ export class MatchFacadeService implements OnDestroy {
         this.connectWebSocket();
         this.networkIntervalId = window.setInterval(() => {
             if (this.socket?.readyState !== WebSocket.OPEN) {
-                console.log("[domino-online] fallback polling acionado", {
+                this.logNetworkDebug("[domino-online] fallback polling acionado", {
                     roomCode: this.backendNetworkConfig?.roomCode,
                     socketState: this.socket?.readyState ?? "sem-socket",
                     at: new Date().toISOString(),
@@ -818,7 +830,7 @@ export class MatchFacadeService implements OnDestroy {
         this.socket = socket;
 
         socket.onopen = () => {
-            console.log("[domino-online] websocket conectado", {
+            this.logNetworkDebug("[domino-online] websocket conectado", {
                 roomCode: this.backendNetworkConfig?.roomCode,
                 at: new Date().toISOString(),
             });
@@ -826,7 +838,10 @@ export class MatchFacadeService implements OnDestroy {
                 window.clearTimeout(this.socketReconnectTimeoutId);
                 this.socketReconnectTimeoutId = null;
             }
-            socket.send(JSON.stringify({ type: "sync" }));
+            socket.send(JSON.stringify({
+                type: "auth",
+                session_key: this.backendNetworkConfig?.sessionKey,
+            }));
         };
 
         socket.onmessage = (event) => {
@@ -835,14 +850,14 @@ export class MatchFacadeService implements OnDestroy {
                 if (payload.type !== "room_state") {
                     return;
                 }
-                console.log("[domino-online] evento realtime recebido", {
+                this.logNetworkDebug("[domino-online] evento realtime recebido", {
                     roomCode: this.backendNetworkConfig?.roomCode,
                     matchId: payload.match?.id ?? null,
                     at: new Date().toISOString(),
                 });
                 this.applyRealtimePayload(payload);
             } catch {
-                console.log("[domino-online] falha ao ler evento realtime, usando refresh", {
+                this.logNetworkDebug("[domino-online] falha ao ler evento realtime, usando refresh", {
                     roomCode: this.backendNetworkConfig?.roomCode,
                     at: new Date().toISOString(),
                 });
@@ -851,7 +866,7 @@ export class MatchFacadeService implements OnDestroy {
         };
 
         socket.onclose = (event) => {
-            console.log("[domino-online] websocket fechado", {
+            this.logNetworkDebug("[domino-online] websocket fechado", {
                 roomCode: this.backendNetworkConfig?.roomCode,
                 code: event.code,
                 reason: event.reason,
@@ -863,6 +878,11 @@ export class MatchFacadeService implements OnDestroy {
             }
             if (this.socketReconnectTimeoutId !== null) {
                 window.clearTimeout(this.socketReconnectTimeoutId);
+                this.socketReconnectTimeoutId = null;
+            }
+            if (event.code === 4401 || event.code === 4403) {
+                clearBackendSession();
+                return;
             }
             this.socketReconnectTimeoutId = window.setTimeout(() => {
                 this.connectWebSocket();
@@ -870,9 +890,9 @@ export class MatchFacadeService implements OnDestroy {
         };
 
         socket.onerror = (event) => {
-            console.log("[domino-online] erro no websocket", {
+            this.logNetworkDebug("[domino-online] erro no websocket", {
                 roomCode: this.backendNetworkConfig?.roomCode,
-                event,
+                eventType: event.type,
                 at: new Date().toISOString(),
             });
             socket.close();
@@ -881,22 +901,40 @@ export class MatchFacadeService implements OnDestroy {
 
     private getWebSocketUrl(): string {
         const roomCode = encodeURIComponent(this.backendNetworkConfig!.roomCode);
-        const session = encodeURIComponent(this.backendNetworkConfig!.sessionKey);
         const apiBase = this.backendNetworkConfig!.apiBase;
 
         if (apiBase.startsWith("/")) {
             const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-            return `${protocol}//${window.location.host}/ws/rooms/${roomCode}/?session=${session}`;
+            return `${protocol}//${window.location.host}/ws/rooms/${roomCode}/`;
         }
 
         try {
             const apiUrl = new URL(apiBase, window.location.origin);
             const protocol = apiUrl.protocol === "https:" ? "wss:" : "ws:";
-            return `${protocol}//${apiUrl.host}/ws/rooms/${roomCode}/?session=${session}`;
+            return `${protocol}//${apiUrl.host}/ws/rooms/${roomCode}/`;
         } catch {
             const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-            return `${protocol}//${window.location.host}/ws/rooms/${roomCode}/?session=${session}`;
+            return `${protocol}//${window.location.host}/ws/rooms/${roomCode}/`;
         }
+    }
+
+    private removeSessionFromUrl(params: URLSearchParams): void {
+        if (!params.has("session")) {
+            return;
+        }
+
+        params.delete("session");
+        const nextQuery = params.toString();
+        const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+        window.history.replaceState(window.history.state, "", nextUrl);
+    }
+
+    private logNetworkDebug(message: string, payload: Record<string, unknown>): void {
+        if (!isDevMode()) {
+            return;
+        }
+
+        console.log(message, payload);
     }
 
     private applyRealtimePayload(payload: RealtimePayload): void {

@@ -28,6 +28,7 @@ import type {
     RoundState,
     TeamId,
 } from "../../../core/domino";
+import { getDefaultLegacyApiBase, resolveTrustedApiBase } from "./network-api-base.util";
 
 export type BoardBranches = Record<BoardSide, readonly DominoTile[]>;
 export type PlayerNames = Partial<Record<PlayerId, string>>;
@@ -802,7 +803,11 @@ export class LocalMatchService implements OnDestroy {
 
         const humanPlayers = this.parseHumanPlayers(params.get("humans"));
         const playerNames = this.parsePlayerNames(params.get("names"));
-        const apiBase = params.get("api") ?? this.getDefaultApiBase();
+        const apiBase = resolveTrustedApiBase({
+            queryValue: params.get("api"),
+            fallbackApiBase: this.getDefaultApiBase(),
+            useStoredValue: false,
+        });
         return {
             roomId,
             role,
@@ -814,11 +819,7 @@ export class LocalMatchService implements OnDestroy {
     }
 
     private getDefaultApiBase(): string {
-        if (window.location.port === "4201" || window.location.port === "4200") {
-            return `http://${window.location.hostname}:4310`;
-        }
-
-        return window.location.origin;
+        return getDefaultLegacyApiBase();
     }
 
     private isPlayerId(value: string | null): value is PlayerId {
