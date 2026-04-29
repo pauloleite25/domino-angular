@@ -406,26 +406,6 @@
                     <div class="mobile-score-strip">
                         <app-score-panel [score]="match.score" [acLabel]="acTeamLabel" [bdLabel]="bdTeamLabel"></app-score-panel>
                     </div>
-
-                    <div class="mobile-round-actions">
-                        <div class="mobile-recent-history">
-                            <div *ngIf="recentMoveHistory.length === 0" class="recent-empty">Sem jogadas</div>
-                            <div *ngFor="let item of recentMoveHistory" class="recent-line">
-                                <span>{{ item.description }}</span>
-                                <strong *ngIf="item.points > 0">+{{ item.points }}</strong>
-                            </div>
-                        </div>
-
-                        <button *ngIf="match.canStartNextRound" type="button" class="mobile-new-match" (click)="match.startNextRound()">
-                            Proxima
-                        </button>
-                        <button *ngIf="!match.canStartNextRound" type="button" class="mobile-new-match" (click)="handleStartNewMatch()">
-                            Nova
-                        </button>
-                        <button type="button" class="mobile-home-action" (click)="handleLeaveGame()">
-                            Sair
-                        </button>
-                    </div>
                 </div>
 
                 <div *ngIf="!match.isSpectator" class="reaction-bar">

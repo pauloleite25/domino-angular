@@ -20,7 +20,7 @@ export class PlayerHandComponent {
     @Output() selectTile = new EventEmitter<DominoTile>();
     @Output() dragTileStart = new EventEmitter<string>();
     @Output() dragTileEnd = new EventEmitter<void>();
-    private readonly mobileTileLongSidePx = 48;
+    private readonly mobileTileLongSidePx = 60;
     private readonly desktopTileLongSidePx = 128;
     draggingTileKey: string | null = null;
     private dragPreviewElement: HTMLElement | null = null;

@@ -605,22 +605,6 @@
     display: none;
 }
 
-.mobile-new-match {
-    display: none;
-}
-
-.mobile-home-action {
-    display: none;
-}
-
-.mobile-round-actions {
-    display: none;
-}
-
-.mobile-recent-history {
-    display: none;
-}
-
 .mobile-bottom-row {
     display: block;
     min-width: 0;
@@ -682,8 +666,7 @@
     gap: 6px;
 }
 
-.round-actions button,
-.mobile-round-actions button {
+.round-actions button {
     flex: 1 1 0;
     width: auto;
     min-width: 0;
@@ -1088,88 +1071,15 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 96px min(392px, 48vw);
-        align-items: stretch;
-        gap: 4px;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: end;
+        gap: 8px;
     }
 
 
     .mobile-score-strip {
-        display: block;
+        display: none;
         min-width: 0;
-    }
-
-    .mobile-new-match {
-        display: block;
-        border: 1px solid #8b5a2b;
-        border-radius: 12px;
-        background: linear-gradient(180deg, #d1a46a 0%, #b57a3a 100%);
-        color: #1f2937;
-        cursor: pointer;
-        font-size: 20px;
-        font-weight: 800;
-        padding: 0 16px;
-    }
-
-    .mobile-round-actions {
-        display: flex;
-        grid-column: 3;
-        align-items: stretch;
-        flex-wrap: nowrap;
-        gap: 3px;
-    }
-
-    .mobile-round-actions button {
-        flex: 0 0 30px;
-    }
-
-    .mobile-recent-history {
-        display: flex;
-        min-width: 0;
-        max-width: 300px;
-        flex: 0 1 min(300px, calc(100% - 91px));
-        height: 100%;
-        flex-direction: column;
-        justify-content: center;
-        overflow: hidden;
-        border: 1px solid rgb(255 209 102 / 24%);
-        border-radius: 6px;
-        background: rgb(18 27 24 / 72%);
-        color: #fff2c7;
-        font-size: 9px;
-        line-height: 1.15;
-        padding: 3px 6px;
-    }
-
-    .mobile-round-actions button {
-        flex: 0 0 30px;
-    }
-
-    .recent-line {
-        display: flex;
-        min-width: 0;
-        justify-content: space-between;
-        gap: 6px;
-    }
-
-    .recent-line span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .recent-line strong {
-        color: #7df3bd;
-        flex: none;
-    }
-
-    .recent-empty {
-        color: #d8ebe4;
-    }
-
-    .mobile-round-actions .mobile-new-match {
-        display: block;
-        flex: 0 0 88px;
     }
 
     .reaction-bar {
@@ -1183,11 +1093,6 @@
     .reaction-chip {
         font-size: 16px;
         padding: 6px 7px;
-    }
-
-    .mobile-round-actions .mobile-home-action {
-        display: block;
-        flex: 0 0 64px;
     }
 
     .mobile-details {
@@ -1311,33 +1216,14 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 96px min(392px, 48vw);
-        align-items: stretch;
-        gap: 3px;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: end;
+        gap: 6px;
     }
 
 
     .mobile-score-strip {
-        display: block;
-        min-width: 0;
-    }
-
-    .mobile-recent-history {
-        display: flex;
-        min-width: 0;
-        max-width: 300px;
-        flex: 0 1 min(300px, calc(100% - 91px));
-        height: 100%;
-        flex-direction: column;
-        justify-content: center;
-        overflow: hidden;
-        border: 1px solid rgb(255 209 102 / 24%);
-        border-radius: 6px;
-        background: rgb(18 27 24 / 72%);
-        color: #fff2c7;
-        font-size: 9px;
-        line-height: 1.15;
-        padding: 3px 6px;
+        display: none;
     }
 
     .pass-box {
@@ -1439,14 +1325,14 @@
 
     .mobile-bottom-row {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 96px min(392px, 48vw);
-        align-items: stretch;
-        gap: 3px;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: end;
+        gap: 8px;
     }
 
 
     .mobile-score-strip {
-        display: block;
+        display: none;
     }
 
     .mobile-details {

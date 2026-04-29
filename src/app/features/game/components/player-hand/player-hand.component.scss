@@ -10,6 +10,18 @@
     padding: 12px;
 }
 
+.hand-rack {
+    position: relative;
+}
+
+.hand-mobile-shell {
+    display: block;
+}
+
+.hand-info-card {
+    display: none;
+}
+
 .hand-header {
     display: flex;
     flex-wrap: wrap;
@@ -131,50 +143,142 @@ h2 {
 
 @media (max-width: 640px), (max-height: 520px) {
     .hand-panel {
-        padding: 1px 3px;
-        border-radius: 6px;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
     }
 
     .hand-panel.waiting {
-        background:
-            linear-gradient(180deg, rgb(255 255 255 / 8%) 0%, transparent 100%),
-            #161d1b;
         filter: saturate(0.7);
     }
 
     .hand-panel.can-play {
-        background:
-            linear-gradient(180deg, rgb(255 255 255 / 12%) 0%, transparent 100%),
-            #143429;
-        box-shadow: 0 0 0 1px rgb(255 209 102 / 30%);
+        filter: saturate(1.03);
     }
 
     .hand-header {
         display: none;
     }
 
+    .hand-mobile-shell {
+        --info-card-width: clamp(96px, 22vw, 174px);
+        --info-overlap: clamp(5px, 1.2vw, 8px);
+        position: relative;
+        display: block;
+        overflow: visible;
+    }
+
+    .hand-info-card {
+        position: relative;
+        display: block;
+        position: absolute;
+        left: calc(29% - var(--info-card-width) + var(--info-overlap));
+        bottom: 0;
+        width: var(--info-card-width);
+        height: clamp(72px, 22vw, 106px);
+        background: url("/assets/info_player_a.png") left center / 100% 100% no-repeat;
+        filter: drop-shadow(0 8px 14px rgb(0 0 0 / 32%));
+        z-index: 0;
+    }
+
+    .hand-info-copy {
+        position: absolute;
+        top: 50%;
+        left: 52%;
+        display: flex;
+        width: 40%;
+        flex-direction: column;
+        gap: 2px;
+        color: #f5cf77;
+        line-height: 1.05;
+        transform: translateY(-50%);
+    }
+
+    .hand-info-name {
+        overflow: hidden;
+        font-size: clamp(11px, 2.9vw, 15px);
+        font-weight: 900;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        text-shadow: 0 1px 2px rgb(0 0 0 / 45%);
+    }
+
+    .hand-info-count {
+        color: #f8e4b2;
+        font-size: clamp(10px, 2.4vw, 13px);
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgb(0 0 0 / 45%);
+    }
+
+    .hand-rack {
+        width: 100%;
+        height: clamp(90px, 26vw, 112px);
+        isolation: isolate;
+        z-index: 1;
+    }
+
+    .hand-rack::before {
+        content: "";
+        position: absolute;
+        left: 25%;
+        bottom: 0;
+        width: 50%;
+        height: 100%;
+        z-index: 0;
+        background: url("/assets/suporte_mao.png") center bottom / 100% 100% no-repeat;
+        filter: drop-shadow(0 10px 18px rgb(0 0 0 / 36%));
+        pointer-events: none;
+    }
+
+    .hand-rack::after {
+        content: "";
+        position: absolute;
+        left: 29%;
+        bottom: 8px;
+        width: 42%;
+        height: 20px;
+        z-index: 0;
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgb(0 0 0 / 0%) 0%, rgb(0 0 0 / 12%) 100%);
+        pointer-events: none;
+    }
+
     .tiles {
+        position: relative;
+        z-index: 1;
         flex-wrap: nowrap;
-        justify-content: flex-start;
+        height: 100%;
+        min-height: 0;
+        align-items: flex-end;
+        justify-content: center;
         overflow-x: auto;
         overflow-y: hidden;
-        gap: 14px;
+        gap: 8px;
         margin-top: 0;
-        padding-bottom: 0;
-        padding-left: 5%;
+        padding: 24px 24px 10px;
+        scroll-padding-inline: 24px;
     }
 
     .tile-button {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: flex-end;
         padding: 0;
+        scroll-snap-align: center;
+        transform-origin: center bottom;
     }
 
     .tile-button.disabled {
-        opacity: 0.45;
+        opacity: 0.62;
     }
 
     .tile-button.playable:not(.disabled) {
-        background: rgb(19 173 125 / 28%);
-        box-shadow: 0 0 0 2px rgb(255 209 102 / 70%);
+        background: rgb(19 173 125 / 20%);
+        box-shadow:
+            0 0 0 1px rgb(255 209 102 / 56%),
+            0 10px 14px rgb(0 0 0 / 18%);
     }
 
     .tiles::-webkit-scrollbar {

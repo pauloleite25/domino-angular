@@ -12,29 +12,40 @@
         <div class="count">Jogaveis: <strong>{{ playableCount }}</strong> / {{ hand.length }}</div>
     </div>
 
-    <div class="tiles">
-        <button
-            *ngFor="let tile of hand"
-            type="button"
-            class="tile-button"
-            [class.playable]="isPlayable(tile)"
-            [class.dragging]="draggingTileKey === tileKey(tile)"
-            [disabled]="!canInteract || !isPlayable(tile)"
-            [class.disabled]="!canInteract || !isPlayable(tile)"
-            [attr.draggable]="canInteract && isPlayable(tile) ? true : null"
-            (dragstart)="handleDragStart($event, tile)"
-            (dragend)="handleDragEnd()"
-            (click)="selectTile.emit(tile)">
-            <app-domino-tile-visual
-                [left]="tile.left"
-                [right]="tile.right"
-                orientation="vertical"
-                [fixedLongSidePx]="tileLongSidePx"
-                [selected]="selectedTileKey === tileKey(tile)"
-                [playable]="isPlayable(tile)"
-                playableStyle="hand"
-                [disabled]="!canInteract || !isPlayable(tile)">
-            </app-domino-tile-visual>
-        </button>
+    <div class="hand-mobile-shell">
+        <div class="hand-info-card">
+            <div class="hand-info-copy">
+                <div class="hand-info-name">{{ playerName }}</div>
+                <div class="hand-info-count">{{ hand.length }} pecas</div>
+            </div>
+        </div>
+
+        <div class="hand-rack">
+            <div class="tiles">
+                <button
+                    *ngFor="let tile of hand"
+                    type="button"
+                    class="tile-button"
+                    [class.playable]="isPlayable(tile)"
+                    [class.dragging]="draggingTileKey === tileKey(tile)"
+                    [disabled]="!canInteract || !isPlayable(tile)"
+                    [class.disabled]="!canInteract || !isPlayable(tile)"
+                    [attr.draggable]="canInteract && isPlayable(tile) ? true : null"
+                    (dragstart)="handleDragStart($event, tile)"
+                    (dragend)="handleDragEnd()"
+                    (click)="selectTile.emit(tile)">
+                    <app-domino-tile-visual
+                        [left]="tile.left"
+                        [right]="tile.right"
+                        orientation="vertical"
+                        [fixedLongSidePx]="tileLongSidePx"
+                        [selected]="selectedTileKey === tileKey(tile)"
+                        [playable]="isPlayable(tile)"
+                        playableStyle="hand"
+                        [disabled]="!canInteract || !isPlayable(tile)">
+                    </app-domino-tile-visual>
+                </button>
+            </div>
+        </div>
     </div>
 </section>
