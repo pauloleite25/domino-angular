@@ -421,6 +421,16 @@
                     </button>
                 </div>
 
+                <button type="button" class="mobile-history-board" (click)="openMoveHistory()">
+                    <div class="mobile-history-board-content">
+                        <div *ngIf="recentMoveHistory.length === 0" class="mobile-history-empty">Sem jogadas</div>
+                        <div *ngFor="let item of recentMoveHistory" class="mobile-history-line">
+                            <span>{{ item.description }}</span>
+                            <strong *ngIf="item.points > 0">+{{ item.points }}</strong>
+                        </div>
+                    </div>
+                </button>
+
                 <p *ngIf="match.isSpectator" class="room-note spectator-note">
                     Voce entrou como espectador. Acompanhe a mesa em tempo real, sem ocupar uma posicao.
                 </p>

@@ -179,7 +179,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     }
 
     get recentMoveHistory(): readonly MoveHistoryEntry[] {
-        return this.match.moveHistory.slice(-3);
+        return this.match.moveHistory.slice(-4);
     }
 
     get acTeamLabel(): string {
