@@ -1,27 +1,53 @@
-# DominoAngular
+# Domino Angular
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.6.
+Frontend Angular do jogo de domino com modo local contra bots, salas online simples e foco forte em experiencia mobile horizontal.
 
-## Development server
+## Documentacao
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- Visao geral do projeto, regras, arquitetura e decisoes atuais: `PROJETO.md`
+- Contrato do backend realtime correspondente: `../backend-domino/BACKEND_DOMINO.md`
 
-## Code scaffolding
+## Como rodar
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Desenvolvimento do frontend:
 
-## Build
+```bash
+npm run dev
+```
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+Servidor simples de salas:
 
-## Running unit tests
+```bash
+npm run lan-duo
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+Build de producao:
 
-## Running end-to-end tests
+```bash
+npm run build
+```
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+Sincronizacao Android via Capacitor:
 
-## Further help
+```bash
+npm run cap:sync
+```
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+Fluxo completo para Android:
+
+```bash
+npm run android:sync
+```
+
+## Stack
+
+- Angular 17
+- SCSS
+- Capacitor Android
+- Servidor local Node para salas (`scripts/lan-duo-server.mjs`)
+
+## Estado atual
+
+- O jogo esta otimizado primeiro para mobile em orientacao horizontal.
+- A maior frente aberta hoje e design/UX, principalmente HUD mobile, distribuicao de espaco e consistencia visual entre mesa, mao, historico, placar e acoes.
+- O arquivo `src/app/features/game/components/local-match-screen/local-match-screen.component.scss` concentra grande parte da camada visual da partida e ja opera perto do budget de estilo do build.

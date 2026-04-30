@@ -403,9 +403,25 @@
                         </div>
                     </ng-template>
 
-                    <div class="mobile-score-strip">
-                        <app-score-panel [score]="match.score" [acLabel]="acTeamLabel" [bdLabel]="bdTeamLabel"></app-score-panel>
+                    <div *ngIf="!match.isSpectator" class="mobile-hand-actions">
+                        <button
+                            *ngIf="match.canStartNextRound; else mobileNewMatchButton"
+                            type="button"
+                            class="mobile-hand-action primary-action"
+                            (click)="match.startNextRound()">
+                            Proxima
+                        </button>
+                        <ng-template #mobileNewMatchButton>
+                            <button type="button" class="mobile-hand-action primary-action" (click)="handleStartNewMatch()">
+                                Nova partida
+                            </button>
+                        </ng-template>
+
+                        <button type="button" class="mobile-hand-action secondary-action" (click)="handleLeaveGame()">
+                            Sair
+                        </button>
                     </div>
+
                 </div>
 
                 <div *ngIf="!match.isSpectator" class="reaction-bar">
@@ -421,15 +437,32 @@
                     </button>
                 </div>
 
-                <button type="button" class="mobile-history-board" (click)="openMoveHistory()">
-                    <div class="mobile-history-board-content">
-                        <div *ngIf="recentMoveHistory.length === 0" class="mobile-history-empty">Sem jogadas</div>
-                        <div *ngFor="let item of recentMoveHistory" class="mobile-history-line">
-                            <span>{{ item.description }}</span>
-                            <strong *ngIf="item.points > 0">+{{ item.points }}</strong>
+                <div class="mobile-side-panel">
+                    <button type="button" class="mobile-history-board" (click)="openMoveHistory()">
+                        <div class="mobile-history-board-content">
+                            <div *ngIf="recentMoveHistory.length === 0" class="mobile-history-empty">Sem jogadas</div>
+                            <div *ngFor="let item of recentMoveHistory" class="mobile-history-line">
+                                <span>{{ item.description }}</span>
+                                <strong *ngIf="item.points > 0">+{{ item.points }}</strong>
+                            </div>
+                        </div>
+                    </button>
+
+                    <div class="mobile-side-divider" aria-hidden="true"></div>
+
+                    <div class="mobile-score-board" aria-label="Placar atual">
+                        <div class="mobile-score-board-content">
+                            <div class="mobile-score-line" [class.leading]="match.score.AC >= match.score.BD">
+                                <span>{{ acTeamLabel }}</span>
+                                <strong>{{ match.score.AC }}</strong>
+                            </div>
+                            <div class="mobile-score-line" [class.leading]="match.score.BD >= match.score.AC">
+                                <span>{{ bdTeamLabel }}</span>
+                                <strong>{{ match.score.BD }}</strong>
+                            </div>
                         </div>
                     </div>
-                </button>
+                </div>
 
                 <p *ngIf="match.isSpectator" class="room-note spectator-note">
                     Voce entrou como espectador. Acompanhe a mesa em tempo real, sem ocupar uma posicao.
@@ -507,13 +540,6 @@
             (viewFinal)="hasDismissedMatchModal = true"
             (newMatch)="handleStartNewMatch()">
         </app-match-result-modal>
-
-        <button *ngIf="!match.isSpectator" type="button" class="new-match-quiet" (click)="handleStartNewMatch()">
-            Nova partida
-        </button>
-        <button type="button" class="back-home-quiet" (click)="handleLeaveGame()">
-            Sair do jogo
-        </button>
 
         <div *ngIf="match.abandonmentPlayer" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="abandon-title">
             <div class="history-modal abandon-modal">

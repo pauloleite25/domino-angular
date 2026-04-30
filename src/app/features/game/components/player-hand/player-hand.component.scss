@@ -18,10 +18,6 @@
     display: block;
 }
 
-.hand-info-card {
-    display: none;
-}
-
 .hand-header {
     display: flex;
     flex-wrap: wrap;
@@ -163,53 +159,9 @@ h2 {
     }
 
     .hand-mobile-shell {
-        --info-card-width: clamp(96px, 22vw, 174px);
-        --info-overlap: clamp(5px, 1.2vw, 8px);
         position: relative;
         display: block;
         overflow: visible;
-    }
-
-    .hand-info-card {
-        position: relative;
-        display: block;
-        position: absolute;
-        left: calc(34% - var(--info-card-width) + var(--info-overlap));
-        bottom: -8px;
-        width: var(--info-card-width);
-        height: clamp(72px, 22vw, 106px);
-        background: url("/assets/info_player_a.png") left center / 100% 100% no-repeat;
-        filter: drop-shadow(0 8px 14px rgb(0 0 0 / 32%));
-        z-index: 0;
-    }
-
-    .hand-info-copy {
-        position: absolute;
-        top: 50%;
-        left: 52%;
-        display: flex;
-        width: 40%;
-        flex-direction: column;
-        gap: 2px;
-        color: #f5cf77;
-        line-height: 1.05;
-        transform: translateY(-50%);
-    }
-
-    .hand-info-name {
-        overflow: hidden;
-        font-size: clamp(11px, 2.9vw, 15px);
-        font-weight: 900;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        text-shadow: 0 1px 2px rgb(0 0 0 / 45%);
-    }
-
-    .hand-info-count {
-        color: #f8e4b2;
-        font-size: clamp(10px, 2.4vw, 13px);
-        font-weight: 700;
-        text-shadow: 0 1px 2px rgb(0 0 0 / 45%);
     }
 
     .hand-rack {

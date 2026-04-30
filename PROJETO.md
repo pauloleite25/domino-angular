@@ -9,7 +9,7 @@ O jogo usa quatro posicoes fixas: `A`, `B`, `C` e `D`. As duplas sao:
 
 ## Como Rodar
 
-Para desenvolvimento com Angular e servidor de salas juntos:
+Para desenvolvimento do frontend Angular:
 
 ```bash
 npm run dev
@@ -18,7 +18,20 @@ npm run dev
 Esse comando sobe:
 
 - Angular em `http://localhost:4200`.
-- Servidor de salas em `http://localhost:4310`.
+
+Para rodar o servidor simples de salas em separado:
+
+```bash
+npm run lan-duo
+```
+
+Esse comando sobe:
+
+- servidor de salas em `http://localhost:4310`.
+
+Observacao:
+
+- hoje nao existe mais um comando unico oficial que suba frontend e servidor de salas juntos; se isso voltar a existir, a documentacao deve ser atualizada junto.
 
 Para gerar build de producao:
 
@@ -26,7 +39,18 @@ Para gerar build de producao:
 npm run build
 ```
 
-Para rodar o servidor que serve o build:
+Para validar o pacote Android depois de mudancas visuais:
+
+```bash
+npx cap sync android
+```
+
+Observacao:
+
+- hoje o projeto nao oferece um script oficial proprio para servir `dist/` localmente em modo producao;
+- `npm start` nao valida esse fluxo, porque continua sendo apenas `ng serve`.
+
+`npm start` hoje e apenas um alias de desenvolvimento para `ng serve`:
 
 ```bash
 npm start
@@ -64,6 +88,126 @@ O projeto permite:
 - Usar bots nas posicoes que nao forem ocupadas por humanos.
 - Jogar no celular em orientacao horizontal.
 - Ver placar, historico de jogadas e popup de galo.
+
+## Estado Atual Do Design
+
+Hoje o maior problema do projeto nao esta nas regras do domino, e sim na camada visual da partida, principalmente no mobile.
+
+Direcao visual atual:
+
+- estilo casual premium com feltro verde, moldura de madeira escura e detalhes dourados;
+- prioridade para leitura rapida da mesa e da mao do jogador;
+- HUD compacto no mobile, sempre tentando preservar area util para as pedras e para o tabuleiro;
+- foco principal em celular na horizontal;
+- componentes desktop e mobile ainda compartilham muito CSS no mesmo arquivo, o que dificulta evolucao.
+
+Arquivos mais importantes para design:
+
+- `src/app/features/game/components/local-match-screen/local-match-screen.component.html`
+- `src/app/features/game/components/local-match-screen/local-match-screen.component.scss`
+- `src/app/features/game/components/domino-board/domino-board.component.html`
+- `src/app/features/game/components/domino-board/domino-board.component.scss`
+- `src/app/features/game/components/player-hand/player-hand.component.html`
+- `src/app/features/game/components/player-hand/player-hand.component.scss`
+
+Assets visuais ativos no layout atual:
+
+- `src/assets/mes_domino_mobile.png`
+  Fundo principal da mesa no mobile.
+
+- `src/assets/suporte_mao.png`
+  Base visual da mao do jogador no mobile.
+
+Observacao importante:
+
+- o historico/placar lateral do mobile nao depende mais de imagem dedicada; hoje ele e desenhado majoritariamente em CSS;
+- assets antigos que nao aparecem mais no layout atual devem ser tratados como candidatos a limpeza antes de novos ciclos de refinamento.
+
+Assets hoje candidatos a limpeza ou revisao de uso:
+
+- `src/assets/historico.png`
+- `src/assets/info_player_a.png`
+- `src/assets/suporte_mao.webp`
+
+## Design Da Partida No Mobile
+
+No estado atual, a partida mobile horizontal funciona assim:
+
+- a mesa cobre a tela inteira ao fundo;
+- o `board-holder` ocupa a tela toda, atras da HUD;
+- a mao do jogador fica na base, com suporte visual proprio;
+- historico e placar ficam agrupados em um unico painel lateral compacto;
+- as acoes principais da rodada ficam ao lado direito da mao;
+- os jogadores `B`, `C` e `D` aparecem como cards compactos ao redor do tabuleiro, com quantidade de pecas representada visualmente por pecas viradas;
+- o placar tradicional em coluna lateral foi substituido, no mobile, por HUD mais curta.
+
+Arquitetura visual mobile atual:
+
+- `mobile-bottom-row`
+  Linha inferior que concentra mao e acoes do jogador humano.
+
+- `mobile-hand-actions`
+  Container dos dois botoes de acao visiveis no mobile.
+  Regra atual: sempre existem apenas dois botoes visiveis por vez, com `Sair` fixo e o botao principal alternando entre `Nova partida` e `Proxima`.
+
+- `mobile-side-panel`
+  Painel compacto com historico recente e placar.
+
+- `table-player-card`
+  Cartoes dos jogadores adversarios ao redor da mesa.
+
+## Principais Problemas De Design Hoje
+
+Problemas mais relevantes observados no estado atual:
+
+- a tela de partida ainda concentra responsabilidades demais em `local-match-screen.component.scss`;
+- o ajuste fino do mobile esta muito sensivel a pequenos deslocamentos de largura e altura, principalmente na faixa inferior;
+- o tamanho percebido das pedras depende nao so do valor base da peca, mas tambem do espaco que a HUD consome ao redor da mao;
+- falta um design system leve para repetir tokens visuais de dourado, madeira, feltro, sombra, borda e raio;
+- existe mistura de decisoes de layout estrutural com acabamento visual no mesmo bloco de SCSS;
+- parte da HUD mobile foi refinada de forma incremental e ainda precisa consolidacao;
+- o budget de estilo por componente esta perto do limite no componente principal da partida.
+
+Limite atual de budget do Angular para estilos por componente:
+
+```txt
+warning: 30kb
+error: 32kb
+```
+
+Arquivo mais pressionado hoje:
+
+```txt
+src/app/features/game/components/local-match-screen/local-match-screen.component.scss
+```
+
+## Prioridades Recomendadas De Design
+
+Ordem sugerida para os proximos ciclos:
+
+1. estabilizar a faixa inferior mobile: mao, acoes e painel lateral;
+2. separar layout estrutural de acabamento visual no `local-match-screen.component.scss`;
+3. extrair tokens visuais repetidos para variaveis globais ou blocos mais reutilizaveis;
+4. revisar escala real das pedras no mobile com a HUD final, nao isoladamente;
+5. consolidar um padrao unico para cards de jogador, placar, historico e botoes;
+6. reduzir acoplamento entre design desktop e mobile dentro do mesmo arquivo;
+7. considerar dividir a HUD mobile em componentes menores se o budget continuar crescendo.
+
+## Regra De Trabalho Para Frontend
+
+Sempre que houver mudanca visual relevante na partida:
+
+- pensar primeiro no mobile horizontal;
+- validar se a HUD nao rouba espaco demais da mao do jogador;
+- verificar se a mesa continua visivel atras dos elementos;
+- evitar reintroduzir fundos duplicados da mesa;
+- preferir ajustes pequenos e reversiveis;
+- rodar:
+
+```bash
+npm run build
+npx cap sync android
+```
 
 ## Estrutura Principal
 
@@ -270,7 +414,7 @@ Se a rodada travar, o jogo soma as pecas dos times:
 - Se `BD` tiver menos pontos na mao, `BD` vence.
 - Se empatar, ninguem pontua.
 
-A pontuacao da rodada travada e a diferenca entre os times, arredondada para baixo ate o multiplo de 5.
+A pontuacao da rodada travada e a soma do total do time derrotado exemplo, time AC vence total do time BD 20, logo 20 pontos para AC, arredondada para baixo ate o multiplo de 5.
 
 ## Bots
 
@@ -298,11 +442,11 @@ BOT_MOVE_DELAY_MS = 2000
 
 A CPU avalia jogadas legais e monta uma pontuacao estrategica considerando:
 
-- pontos imediatos que a jogada faz;
+- quantidade de jogadas futuras que ela mesma tera;
 - chance de fazer 50 pontos de galo;
 - reducao das jogadas do proximo adversario;
 - protecao do parceiro;
-- quantidade de jogadas futuras que ela mesma tera;
+- pontos imediatos que a jogada faz;
 - quantidade de valores em aberto que ainda combinam com sua mao;
 - risco de dar uma boa resposta para o adversario;
 - prioridade de lado da mesa;
@@ -434,21 +578,24 @@ Regras atuais do layout:
 No mobile:
 
 - a interface pede para girar o celular;
-- a mao do jogador fica na parte inferior;
-- o placar fica compacto;
+- a mesa usa `mes_domino_mobile.png` como fundo principal;
+- a mao do jogador fica na parte inferior, com suporte proprio;
+- historico e placar ficam juntos em um painel compacto lateral;
+- as acoes principais do jogador ficam ao lado da mao;
 - os nomes dos jogadores ficam ao redor do tabuleiro;
-- jogadores laterais ficam com nome na vertical;
-- jogadores de cima e baixo ficam com nome na horizontal.
+- jogadores laterais ficam em cards verticais;
+- jogador superior fica em card horizontal;
+- jogadores laterais usam pecas ocultas desenhadas na horizontal dentro de uma estrutura vertical.
 
 ## Comandos Uteis
 
-Rodar tudo em desenvolvimento:
+Rodar frontend em desenvolvimento:
 
 ```bash
 npm run dev
 ```
 
-Rodar somente Angular:
+Rodar frontend com alias explicito:
 
 ```bash
 npm run dev:angular
@@ -464,6 +611,18 @@ Build:
 
 ```bash
 npm run build
+```
+
+Sincronizar Android:
+
+```bash
+npm run cap:sync
+```
+
+Build + sync Android:
+
+```bash
+npm run android:sync
 ```
 
 Testes:
