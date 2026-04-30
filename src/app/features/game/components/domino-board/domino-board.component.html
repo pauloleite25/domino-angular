@@ -63,15 +63,36 @@
         </div>
 
         <div class="table-player-labels">
-            <span *ngIf="getPlayer('C') as player" class="table-player north" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
-                {{ player.name }} · {{ player.handCount }}
-            </span>
-            <span *ngIf="getPlayer('B') as player" class="table-player west" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
-                {{ player.name }} · {{ player.handCount }}
-            </span>
-            <span *ngIf="getPlayer('D') as player" class="table-player east" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
-                {{ player.name }} · {{ player.handCount }}
-            </span>
+            <div *ngIf="getPlayer('C') as player" class="table-player-card north" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
+                <div class="table-player-summary">
+                    <div class="table-player-name">{{ player.name }}</div>
+                    <div class="table-player-count">{{ player.handCount }} pecas</div>
+                </div>
+                <div class="table-player-hidden-hand">
+                    <span *ngFor="let tile of hiddenTiles(player)" class="hidden-tile" aria-hidden="true"></span>
+                </div>
+                <span *ngIf="statusLabel(player) as status" class="table-player-status">{{ status }}</span>
+            </div>
+            <div *ngIf="getPlayer('B') as player" class="table-player-card west side-card" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
+                <div class="table-player-summary">
+                    <div class="table-player-name">{{ player.name }}</div>
+                    <div class="table-player-count">{{ player.handCount }} pecas</div>
+                </div>
+                <div class="table-player-hidden-hand side">
+                    <span *ngFor="let tile of hiddenTiles(player)" class="hidden-tile" aria-hidden="true"></span>
+                </div>
+                <span *ngIf="statusLabel(player) as status" class="table-player-status side">{{ status }}</span>
+            </div>
+            <div *ngIf="getPlayer('D') as player" class="table-player-card east side-card" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
+                <div class="table-player-summary">
+                    <div class="table-player-name">{{ player.name }}</div>
+                    <div class="table-player-count">{{ player.handCount }} pecas</div>
+                </div>
+                <div class="table-player-hidden-hand side">
+                    <span *ngFor="let tile of hiddenTiles(player)" class="hidden-tile" aria-hidden="true"></span>
+                </div>
+                <span *ngIf="statusLabel(player) as status" class="table-player-status side">{{ status }}</span>
+            </div>
             <span *ngIf="getPlayer('A') as player" class="table-player south" [class.current]="player.isCurrent" [class.next]="nextPlayer === player.id">
                 {{ player.name }} · {{ player.handCount }}
             </span>
