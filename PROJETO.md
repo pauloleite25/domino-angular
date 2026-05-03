@@ -93,6 +93,29 @@ O projeto permite:
 
 Hoje o maior problema do projeto nao esta nas regras do domino, e sim na camada visual da partida, principalmente no mobile.
 
+## Intento Da Interface
+
+Humano principal:
+
+- jogador casual em celular, normalmente em sessao curta, com pouca paciencia para HUD pesada ou leitura confusa;
+- o foco principal e jogar rapido, entender a mesa em segundos e encontrar a propria jogada sem friccao.
+
+O que esse jogador precisa fazer, nesta ordem:
+
+1. ler a mesa e entender o estado atual da rodada;
+2. localizar a propria mao sem esforco;
+3. identificar rapidamente qual acao principal esta disponivel;
+4. consultar placar e historico sem perder conexao visual com a mesa.
+
+Como a interface deve se sentir:
+
+- direta;
+- tatil;
+- compacta;
+- quente;
+- legivel;
+- focada na mesa, nao na HUD.
+
 Direcao visual atual:
 
 - estilo casual premium com feltro verde, moldura de madeira escura e detalhes dourados;
@@ -129,6 +152,52 @@ Assets hoje candidatos a limpeza ou revisao de uso:
 - `src/assets/info_player_a.png`
 - `src/assets/suporte_mao.webp`
 
+## Signature Visual
+
+Assinatura visual desejada do projeto:
+
+- mesa teatral com HUD periferica compacta.
+
+Em termos praticos, isso significa:
+
+- a mesa e o palco principal da experiencia;
+- a HUD deve morar nas bordas e nunca competir com o centro;
+- a mao do jogador deve parecer um objeto fisico estavel, e nao uma faixa elastica que muda de identidade a cada ajuste;
+- placar, historico e acoes devem pertencer a uma mesma familia visual de molduras compactas.
+
+## Sistema Visual
+
+Tokens e regras base recomendados para a partida:
+
+- `Palette`
+  Feltro verde escuro, madeira castanha quente, dourado envelhecido, marfim de peca, sombra escura suave.
+
+- `Depth`
+  Priorizar borders-first com sombra sutil. A borda deve estruturar; a sombra deve apenas separar.
+
+- `Surfaces`
+  A mesa e a superficie principal.
+  A HUD deve existir em um nivel acima da mesa, mas abaixo da prioridade visual das pecas do jogador.
+  Inputs e controles devem parecer levemente encaixados, nunca brilhantes demais.
+
+- `Typography`
+  Titulos curtos e fortes.
+  Labels pequenos, legiveis e compactos.
+  Numeros de placar e contagem devem ter maior peso visual do que o texto de apoio.
+
+- `Spacing`
+  Trabalhar preferencialmente em escala de 4px ou multiplos claros dela.
+  Evitar valores soltos sem justificativa.
+
+- `Radius`
+  Pequeno para controles e chips.
+  Medio para paineis compactos.
+  Maior apenas em modais e overlays.
+
+- `States`
+  Todo elemento interativo importante deve ter estado default, hover, ativo, foco e desabilitado.
+  Historico, placar e acoes tambem precisam de estado vazio e de densidade controlada.
+
 ## Design Da Partida No Mobile
 
 No estado atual, a partida mobile horizontal funciona assim:
@@ -138,8 +207,34 @@ No estado atual, a partida mobile horizontal funciona assim:
 - a mao do jogador fica na base, com suporte visual proprio;
 - historico e placar ficam agrupados em um unico painel lateral compacto;
 - as acoes principais da rodada ficam ao lado direito da mao;
+- o painel lateral de historico/placar e os botoes de acao da mao devem permanecer visiveis ao mesmo tempo no mobile;
 - os jogadores `B`, `C` e `D` aparecem como cards compactos ao redor do tabuleiro, com quantidade de pecas representada visualmente por pecas viradas;
 - o placar tradicional em coluna lateral foi substituido, no mobile, por HUD mais curta.
+- o projeto deve ser responsivo no mobile, mas a orientacao horizontal e o foco principal.
+- os textos nos botões devem sempre ser curtos e diretos e não utrapasssar a area do botão, para evitar que a HUD fique muito grande e roube espaco da mesa e da mao.
+- a mesa deve ser sempre visível ao fundo, mesmo com a HUD aberta, para manter a conexão visual do jogador com o jogo.
+- as peças sempre devem ficar na frente da HUD, para garantir que o jogador tenha uma visão clara das suas opções de jogo.
+- as peças devem ficar dentro do espaço util do suporte da mao ou seja, o suporte da mão deve começar do tamanho total necessaria para a quantidade de pedras e deve permanecer assim durante o jogo, para reforçar a sensação de que o jogador está interagindo diretamente com as peças.
+- o suporte da mao do jogador nunca deve ficar atras do painel de historico/placar; ele deve começar visualmente a direita desse painel.
+- a faixa inferior mobile deve reservar espaço real para o painel lateral, para que o suporte da mao nunca comece por baixo dele, nem mesmo alguns pixels.
+- nenhuma regra responsiva pode fazer o painel lateral ou os botoes da mao desaparecerem por conflito de largura, heranca de variavel ou `display`;
+- o suporte da mão dos outros jogadores devem ser compactos para a quantidade de peças, não deve ser maior que o necessario para representar a quantidade de peças, para evitar que eles roubem espaço visual da mesa e da mão do jogador.
+
+## Regras Da HUD Mobile
+
+Regras obrigatorias para qualquer ajuste futuro:
+
+- a mesa precisa continuar claramente visivel ao fundo;
+- a mao do jogador nao pode perder prioridade visual para placar, historico ou botoes;
+- o suporte da mao do jogador nunca pode ficar por baixo do painel lateral de historico/placar;
+- placar e historico devem permanecer compactos e visualmente aparentados;
+- acoes devem usar texto curto e nunca expandir a HUD alem do necessario;
+- os botoes de acao devem preferir largura pelo proprio conteudo curto, em vez de colunas largas fixas, para preservar area util da mesa e da mao;
+- os dois botoes de acao visiveis devem continuar simples, diretos e previsiveis;
+- painel lateral e botoes da mao devem coexistir visualmente; ajustar um deles nao pode ocultar o outro;
+- cards dos jogadores adversarios devem ser compactos e suficientes apenas para representar estado e quantidade de pecas;
+- qualquer ganho visual que reduza legibilidade ou area util da mesa deve ser rejeitado;
+- ajustes de mobile devem ser avaliados sempre no conjunto mesa + HUD + mao, nunca em um componente isolado.
 
 Arquitetura visual mobile atual:
 
@@ -148,7 +243,7 @@ Arquitetura visual mobile atual:
 
 - `mobile-hand-actions`
   Container dos dois botoes de acao visiveis no mobile.
-  Regra atual: sempre existem apenas dois botoes visiveis por vez, com `Sair` fixo e o botao principal alternando entre `Nova partida` e `Proxima`.
+  Regra atual: sempre existem apenas dois botoes visiveis por vez, com `Sair` fixo e o botao principal alternando entre `Nova` e `Proxima`.
 
 - `mobile-side-panel`
   Painel compacto com historico recente e placar.
@@ -197,6 +292,7 @@ Ordem sugerida para os proximos ciclos:
 
 Sempre que houver mudanca visual relevante na partida:
 
+- revisar `.interface-design/system.md` antes de introduzir nova variacao visual;
 - pensar primeiro no mobile horizontal;
 - validar se a HUD nao rouba espaco demais da mao do jogador;
 - verificar se a mesa continua visivel atras dos elementos;

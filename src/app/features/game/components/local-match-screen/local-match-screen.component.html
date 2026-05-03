@@ -413,7 +413,7 @@
                         </button>
                         <ng-template #mobileNewMatchButton>
                             <button type="button" class="mobile-hand-action primary-action" (click)="handleStartNewMatch()">
-                                Nova partida
+                                Nova
                             </button>
                         </ng-template>
 
@@ -424,16 +424,27 @@
 
                 </div>
 
-                <div *ngIf="!match.isSpectator" class="reaction-bar">
+                <div *ngIf="!match.isSpectator" class="reaction-bar" [class.open]="isReactionMenuOpen">
+                    <div *ngIf="isReactionMenuOpen" class="reaction-menu">
+                        <button
+                            *ngFor="let reaction of reactionOptions"
+                            type="button"
+                            class="reaction-chip"
+                            (click)="handleSendReaction(reaction)">
+                            {{ reaction }}
+                        </button>
+                        <button type="button" class="reaction-chip sound-chip" (click)="handleSendLaughReaction()">
+                            🔊
+                        </button>
+                    </div>
+
                     <button
-                        *ngFor="let reaction of reactionOptions"
                         type="button"
-                        class="reaction-chip"
-                        (click)="handleSendReaction(reaction)">
-                        {{ reaction }}
-                    </button>
-                    <button type="button" class="reaction-chip laugh-chip" (click)="handleSendLaughReaction()">
-                        🔊
+                        class="reaction-trigger"
+                        [attr.aria-expanded]="isReactionMenuOpen"
+                        aria-label="Abrir reacoes"
+                        (click)="toggleReactionMenu()">
+                        😊
                     </button>
                 </div>
 

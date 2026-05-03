@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, DoCheck, ElementRef, OnDestroy, ViewChild } from "@angular/core";
+import { AfterViewChecked, Component, DoCheck, ElementRef, HostListener, OnDestroy, ViewChild } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
@@ -122,6 +122,7 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     turnSecondsLeft = 15;
     hasDismissedMatchModal = false;
     isHistoryOpen = false;
+    isReactionMenuOpen = false;
     floatingEvents: readonly FloatingEvent[] = [];
     mobileBottomRowHeight: number | null = null;
 
@@ -172,6 +173,24 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
 
     ngAfterViewChecked(): void {
         this.freezeMobileBottomRowHeight();
+    }
+
+    @HostListener("document:click", ["$event"])
+    handleDocumentClick(event: MouseEvent): void {
+        if (!this.isReactionMenuOpen) {
+            return;
+        }
+
+        if (event.target instanceof Element && event.target.closest(".reaction-bar")) {
+            return;
+        }
+
+        this.isReactionMenuOpen = false;
+    }
+
+    @HostListener("document:keydown.escape")
+    handleEscapeKey(): void {
+        this.isReactionMenuOpen = false;
     }
 
     get isAndroidMobileStart(): boolean {
@@ -443,11 +462,17 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.clearSelection();
     }
 
+    toggleReactionMenu(): void {
+        this.isReactionMenuOpen = !this.isReactionMenuOpen;
+    }
+
     handleSendReaction(emoji: string): void {
+        this.isReactionMenuOpen = false;
         this.match.sendReaction(emoji);
     }
 
     handleSendLaughReaction(): void {
+        this.isReactionMenuOpen = false;
         this.match.sendReaction("🤣");
     }
 

@@ -2,6 +2,9 @@ import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { tileKey } from "../../../../core/domino";
 import type { DominoTile, PlayerId } from "../../../../core/domino";
 
+const TILE_SHORT_TO_LONG_RATIO = 64 / 112;
+const INITIAL_HAND_TILE_COUNT = 7;
+
 @Component({
     selector: "app-player-hand",
     templateUrl: "./player-hand.component.html",
@@ -22,6 +25,9 @@ export class PlayerHandComponent {
     @Output() dragTileEnd = new EventEmitter<void>();
     private readonly mobileTileLongSidePx = 60;
     private readonly desktopTileLongSidePx = 128;
+    private readonly mobileTileGapPx = 8;
+    private readonly mobileRackSidePaddingPx = 24;
+    private readonly mobileRackFrameExtraPx = 28;
     draggingTileKey: string | null = null;
     private dragPreviewElement: HTMLElement | null = null;
 
@@ -45,6 +51,20 @@ export class PlayerHandComponent {
         return window.matchMedia("(max-width: 640px), (max-height: 520px)").matches
             ? this.mobileTileLongSidePx
             : this.desktopTileLongSidePx;
+    }
+
+    get mobileRackSupportWidthPx(): number {
+        const tileCount = Math.max(INITIAL_HAND_TILE_COUNT, this.hand.length);
+        const tileShortSidePx = this.mobileTileLongSidePx * TILE_SHORT_TO_LONG_RATIO;
+        const tilesWidthPx = tileCount * tileShortSidePx;
+        const gapsWidthPx = Math.max(0, tileCount - 1) * this.mobileTileGapPx;
+        const supportWidthPx = tilesWidthPx + gapsWidthPx + this.mobileRackSidePaddingPx * 2 + this.mobileRackFrameExtraPx;
+
+        return Math.ceil(Math.max(188, supportWidthPx));
+    }
+
+    get mobileRackShadowWidthPx(): number {
+        return this.mobileRackSupportWidthPx + 14;
     }
 
     tileKey(tile: DominoTile): string {

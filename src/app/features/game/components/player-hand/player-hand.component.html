@@ -13,7 +13,10 @@
     </div>
 
     <div class="hand-mobile-shell">
-        <div class="hand-rack">
+        <div
+            class="hand-rack"
+            [style.--rack-support-width.px]="mobileRackSupportWidthPx"
+            [style.--rack-shadow-width.px]="mobileRackShadowWidthPx">
             <div class="tiles">
                 <button
                     *ngFor="let tile of hand"
