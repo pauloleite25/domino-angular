@@ -1,0 +1,24 @@
+<div class="reaction-bar" [class.open]="isOpen">
+    <div *ngIf="isOpen" class="reaction-menu">
+        <button
+            *ngFor="let reaction of reactionOptions"
+            type="button"
+            class="reaction-chip"
+            (click)="emitReaction(reaction)">
+            {{ reaction }}
+        </button>
+
+        <button type="button" class="reaction-chip sound-chip" (click)="emitLaughReaction()">
+            🔊
+        </button>
+    </div>
+
+    <button
+        type="button"
+        class="reaction-trigger"
+        [attr.aria-expanded]="isOpen"
+        aria-label="Abrir reacoes"
+        (click)="toggleMenu()">
+        😊
+    </button>
+</div>

@@ -1,4 +1,4 @@
-<section class="hand-panel" [class.can-play]="canInteract" [class.waiting]="!canInteract">
+<section class="hand-panel" [class.can-play]="canInteract" [class.waiting]="!canInteract" [class.mobile-layout]="isMobileLayout" [class.desktop-layout]="!isMobileLayout">
     <div class="hand-header">
         <div class="title-row">
             <h2>{{ playerName }} ({{ playerId }})</h2>

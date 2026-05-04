@@ -1,4 +1,4 @@
-<section class="board-panel">
+<section class="board-panel" [class.mobile-layout]="isMobileViewport" [class.desktop-layout]="!isMobileViewport">
     <div *ngIf="!openingTile" class="empty-board">
         <p>A mesa ainda nao foi aberta.</p>
         <button

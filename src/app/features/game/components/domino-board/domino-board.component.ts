@@ -68,6 +68,7 @@ export class DominoBoardComponent implements AfterViewInit, OnDestroy {
     @Input() selectableEnds: readonly BoardSide[] = [];
     @Input() moveOptionBySide: Partial<Record<BoardSide, number>> = {};
     @Input() canOpenWithSelectedTile = false;
+    @Input() isMobileLayout = false;
     @Output() selectEnd = new EventEmitter<BoardSide>();
     @Output() playOpening = new EventEmitter<void>();
     @Output() dropOnEnds = new EventEmitter<readonly BoardSide[]>();
@@ -90,11 +91,13 @@ export class DominoBoardComponent implements AfterViewInit, OnDestroy {
     }
 
     get isMobileViewport(): boolean {
-        return typeof window !== "undefined" && window.matchMedia("(max-width: 640px), (max-height: 520px)").matches;
+        return this.isMobileLayout;
     }
 
     get isMobileLandscapeViewport(): boolean {
-        return typeof window !== "undefined" && window.matchMedia("(max-height: 520px) and (orientation: landscape)").matches;
+        return typeof window !== "undefined"
+            ? this.isMobileViewport && window.matchMedia("(orientation: landscape)").matches
+            : false;
     }
 
     get tileLongSidePx(): number {

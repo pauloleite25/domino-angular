@@ -1,0 +1,13 @@
+<div class="reaction-bar">
+    <button
+        *ngFor="let reaction of reactionOptions"
+        type="button"
+        class="reaction-chip"
+        (click)="sendReaction.emit(reaction)">
+        {{ reaction }}
+    </button>
+
+    <button type="button" class="reaction-chip laugh-chip" (click)="sendLaughReaction.emit()">
+        🔊
+    </button>
+</div>

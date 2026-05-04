@@ -1,4 +1,4 @@
-import { AfterViewChecked, Component, DoCheck, ElementRef, HostListener, OnDestroy, ViewChild } from "@angular/core";
+import { Component, DoCheck, ElementRef, HostListener, OnDestroy, ViewChild } from "@angular/core";
 import { Capacitor } from "@capacitor/core";
 import { tileKey } from "../../../../core/domino";
 import type { BoardSide, DominoTile, LegalMove, PlayerId } from "../../../../core/domino";
@@ -97,11 +97,15 @@ type FloatingEvent = {
     templateUrl: "./local-match-screen.component.html",
     styleUrl: "./local-match-screen.component.scss",
 })
-export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnDestroy {
+export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     readonly reactionOptions = ["😀", "😂", "😮", "👏"];
     readonly isAndroidApp = Capacitor.getPlatform() === "android";
 
-    @ViewChild("mobileBottomRow") private mobileBottomRow?: ElementRef<HTMLElement>;
+    @ViewChild("mobileBottomRow")
+    set mobileBottomRow(value: ElementRef<HTMLElement> | undefined) {
+        this.mobileBottomRowElement = value;
+        this.setupMobileBottomRowObserver();
+    }
 
     selectedTileKey: string | null = null;
     selectedEnd: BoardSide | null = null;
@@ -119,10 +123,11 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     roomErrorMessage = "";
     isRoomRequestPending = false;
     networkApiBase = this.resolveNetworkApiBase();
+    isAndroidMobileStart = false;
+    isMobileGameLayout = false;
     turnSecondsLeft = 15;
     hasDismissedMatchModal = false;
     isHistoryOpen = false;
-    isReactionMenuOpen = false;
     floatingEvents: readonly FloatingEvent[] = [];
     mobileBottomRowHeight: number | null = null;
 
@@ -133,12 +138,14 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     private lastReactionKey = "";
     private previousTurnKey = "";
     private previousActiveMatch = false;
-    private isMobileBottomRowMeasureQueued = false;
     private hasQueuedMobileDisplayGesture = false;
     private isIosViewportSyncEnabled = false;
-    private readonly onViewportResize = () => this.updateIosViewportHeight();
+    private mobileBottomRowElement?: ElementRef<HTMLElement>;
+    private mobileBottomRowResizeObserver: ResizeObserver | null = null;
+    private readonly onViewportResize = () => this.handleViewportLayoutChange();
 
     constructor(public match: MatchFacadeService) {
+        this.syncViewportFlags();
         this.startLobbyPolling();
     }
 
@@ -168,33 +175,22 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.clearHumanTimer();
         this.clearLobbyPolling();
         this.clearFloatingEventTimeouts();
+        this.mobileBottomRowResizeObserver?.disconnect();
+        this.mobileBottomRowResizeObserver = null;
         this.disableIosViewportSync();
     }
 
-    ngAfterViewChecked(): void {
-        this.freezeMobileBottomRowHeight();
-    }
+    @HostListener("window:resize")
+    @HostListener("window:orientationchange")
+    handleViewportLayoutChange(): void {
+        this.syncViewportFlags();
+        this.mobileBottomRowHeight = null;
+        this.setupMobileBottomRowObserver();
+        this.updateMobileBottomRowHeight();
 
-    @HostListener("document:click", ["$event"])
-    handleDocumentClick(event: MouseEvent): void {
-        if (!this.isReactionMenuOpen) {
-            return;
+        if (this.isIosViewportSyncEnabled) {
+            this.updateIosViewportHeight();
         }
-
-        if (event.target instanceof Element && event.target.closest(".reaction-bar")) {
-            return;
-        }
-
-        this.isReactionMenuOpen = false;
-    }
-
-    @HostListener("document:keydown.escape")
-    handleEscapeKey(): void {
-        this.isReactionMenuOpen = false;
-    }
-
-    get isAndroidMobileStart(): boolean {
-        return this.isAndroidApp && window.innerWidth <= 1024;
     }
 
     get recentMoveHistory(): readonly MoveHistoryEntry[] {
@@ -462,17 +458,11 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
         this.clearSelection();
     }
 
-    toggleReactionMenu(): void {
-        this.isReactionMenuOpen = !this.isReactionMenuOpen;
-    }
-
     handleSendReaction(emoji: string): void {
-        this.isReactionMenuOpen = false;
         this.match.sendReaction(emoji);
     }
 
     handleSendLaughReaction(): void {
-        this.isReactionMenuOpen = false;
         this.match.sendReaction("🤣");
     }
 
@@ -882,7 +872,54 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     }
 
     private isMobileDisplayViewport(): boolean {
-        return window.matchMedia("(max-width: 900px), (max-height: 520px)").matches;
+        return this.isMobileGameLayout;
+    }
+
+    private syncViewportFlags(): void {
+        if (typeof window === "undefined") {
+            this.isAndroidMobileStart = this.isAndroidApp;
+            this.isMobileGameLayout = this.isAndroidApp;
+            return;
+        }
+
+        this.isAndroidMobileStart = this.isAndroidApp && window.innerWidth <= 1024;
+        this.isMobileGameLayout = this.isAndroidApp || window.matchMedia("(max-width: 1024px)").matches;
+    }
+
+    private setupMobileBottomRowObserver(): void {
+        this.mobileBottomRowResizeObserver?.disconnect();
+        this.mobileBottomRowResizeObserver = null;
+
+        if (typeof window === "undefined" || typeof ResizeObserver === "undefined") {
+            return;
+        }
+
+        if (!this.isMobileGameLayout || !this.mobileBottomRowElement) {
+            return;
+        }
+
+        this.mobileBottomRowResizeObserver = new ResizeObserver(() => {
+            this.updateMobileBottomRowHeight();
+        });
+        this.mobileBottomRowResizeObserver.observe(this.mobileBottomRowElement.nativeElement);
+    }
+
+    private updateMobileBottomRowHeight(): void {
+        if (!this.isMobileGameLayout) {
+            this.mobileBottomRowHeight = null;
+            return;
+        }
+
+        if (!this.mobileBottomRowElement) {
+            return;
+        }
+
+        const height = Math.ceil(this.mobileBottomRowElement.nativeElement.getBoundingClientRect().height);
+        if (height <= 0 || this.mobileBottomRowHeight === height) {
+            return;
+        }
+
+        this.mobileBottomRowHeight = height;
     }
 
     private isIosWebKitBrowser(): boolean {
@@ -918,8 +955,6 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
     }
 
     private updateIosViewportHeight(): void {
-        this.mobileBottomRowHeight = null;
-        this.isMobileBottomRowMeasureQueued = false;
         const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
         document.documentElement.style.setProperty("--app-vh", `${Math.floor(viewportHeight)}px`);
         window.scrollTo(0, 1);
@@ -1004,26 +1039,5 @@ export class LocalMatchScreenComponent implements DoCheck, AfterViewChecked, OnD
             window.clearTimeout(timeoutId);
         }
         this.floatingEventTimeouts = [];
-    }
-
-    private freezeMobileBottomRowHeight(): void {
-        if (this.mobileBottomRowHeight !== null || this.isMobileBottomRowMeasureQueued || !this.mobileBottomRow) {
-            return;
-        }
-
-        this.isMobileBottomRowMeasureQueued = true;
-        queueMicrotask(() => {
-            this.isMobileBottomRowMeasureQueued = false;
-            if (this.mobileBottomRowHeight !== null || !this.mobileBottomRow) {
-                return;
-            }
-
-            const height = Math.ceil(this.mobileBottomRow.nativeElement.getBoundingClientRect().height);
-            if (height <= 0) {
-                return;
-            }
-
-            this.mobileBottomRowHeight = height;
-        });
     }
 }

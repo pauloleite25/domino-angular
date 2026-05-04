@@ -1,0 +1,4 @@
+interface:
+  display_name: "Interface Design"
+  short_description: "Crafted UI for dashboards, admin panels, apps and tools"
+  default_prompt: "Use $interface-design to design or refine dashboards, admin panels, apps, tools and interactive product interfaces with stronger craft and consistency."

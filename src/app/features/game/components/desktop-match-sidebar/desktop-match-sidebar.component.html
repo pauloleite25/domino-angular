@@ -1,0 +1,38 @@
+<aside class="side-column">
+    <div class="score-with-actions">
+        <app-score-panel [score]="score" [acLabel]="acLabel" [bdLabel]="bdLabel"></app-score-panel>
+        <div class="round-actions">
+            <button *ngIf="canStartNextRound" type="button" class="primary small" (click)="startNextRound.emit()">
+                Proxima rodada
+            </button>
+            <button type="button" class="secondary small" (click)="leaveGame.emit()">
+                Sair do jogo
+            </button>
+            <button type="button" class="secondary small history-action" (click)="openHistory.emit()">
+                Historico
+            </button>
+        </div>
+    </div>
+
+    <app-turn-indicator
+        [currentPlayer]="currentPlayer"
+        [currentPlayerName]="currentPlayerName"
+        [roundStarter]="roundStarter"
+        [roundStarterName]="roundStarterName"
+        [nextPlayer]="nextPlayer"
+        [nextPlayerName]="nextPlayerName"
+        [isHumanTurn]="isHumanTurn"
+        [isBotTurn]="isBotTurn"
+        [botThinkingPlayer]="botThinkingPlayer"
+        [botActionCountdown]="botActionCountdown"
+        [botDelaySeconds]="botDelaySeconds"
+        [turnSecondsLeft]="turnSecondsLeft"
+        [turnDurationSeconds]="turnDurationSeconds">
+    </app-turn-indicator>
+
+    <div class="history-holder">
+        <app-move-history [items]="moveHistory"></app-move-history>
+    </div>
+
+    <ng-content></ng-content>
+</aside>

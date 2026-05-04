@@ -348,42 +348,187 @@
 </main>
 
 <ng-template #activeMatch>
-    <main class="game-shell">
-        <div class="game-grid">
-            <div class="main-column">
-                <div class="board-holder">
-                    <app-domino-board
-                        [board]="match.roundState!.board"
-                        [boardBranches]="match.boardBranches"
-                        [players]="match.players"
-                        [nextPlayer]="match.nextPlayer"
-                        [starter]="match.roundState!.starter"
-                        [openingOrientation]="openingOrientation"
-                        [selectedEnd]="selectedEnd"
-                        [selectableEnds]="selectableEnds"
-                        [moveOptionBySide]="moveOptionBySide"
-                        [canOpenWithSelectedTile]="canOpenWithSelectedTile && match.isHumanTurn && !match.isMovePending"
-                        (selectEnd)="handleSelectEnd($event)"
-                        (playOpening)="handlePlayOpening()"
-                        (dropOnEnds)="handleDropOnBoardSides($event)"
-                        (dropOnOpening)="handleDropOnOpening()">
-                    </app-domino-board>
-                </div>
+    <main *ngIf="isMobileGameLayout; else desktopMatchLayout" class="game-shell mobile-game-shell">
+        <div class="main-column" [style.padding-bottom.px]="mobileBottomRowHeight">
+            <div class="board-holder">
+                <app-domino-board
+                    [isMobileLayout]="true"
+                    [board]="match.roundState!.board"
+                    [boardBranches]="match.boardBranches"
+                    [players]="match.players"
+                    [nextPlayer]="match.nextPlayer"
+                    [starter]="match.roundState!.starter"
+                    [openingOrientation]="openingOrientation"
+                    [selectedEnd]="selectedEnd"
+                    [selectableEnds]="selectableEnds"
+                    [moveOptionBySide]="moveOptionBySide"
+                    [canOpenWithSelectedTile]="canOpenWithSelectedTile && match.isHumanTurn && !match.isMovePending"
+                    (selectEnd)="handleSelectEnd($event)"
+                    (playOpening)="handlePlayOpening()"
+                    (dropOnEnds)="handleDropOnBoardSides($event)"
+                    (dropOnOpening)="handleDropOnOpening()">
+                </app-domino-board>
+            </div>
 
-                <div *ngIf="canHumanPass" class="pass-box">
-                    <span>Sem jogadas disponiveis.</span>
-                    <button type="button" [disabled]="match.isMovePending" (click)="handlePassTurn()">Passar</button>
-                </div>
+            <div *ngIf="canHumanPass" class="pass-box">
+                <span>Sem jogadas disponiveis.</span>
+                <button type="button" [disabled]="match.isMovePending" (click)="handlePassTurn()">Passar</button>
+            </div>
 
-                <div
-                    #mobileBottomRow
-                    class="mobile-bottom-row"
-                    [style.height.px]="mobileBottomRowHeight"
-                    [style.min-height.px]="mobileBottomRowHeight"
-                    [style.max-height.px]="mobileBottomRowHeight">
-                    <div *ngIf="!match.isSpectator; else spectatorSlot" class="hand-slot">
+            <div
+                #mobileBottomRow
+                class="mobile-bottom-row"
+                style="position: fixed; left: 3px; right: 3px; bottom: 2px; z-index: 4;"
+                [style.height.px]="mobileBottomRowHeight"
+                [style.min-height.px]="mobileBottomRowHeight"
+                [style.max-height.px]="mobileBottomRowHeight">
+                <div *ngIf="!match.isSpectator; else spectatorSlot" class="hand-slot">
+                    <app-player-hand
+                        [hand]="match.humanHand"
+                        [isMobileLayout]="true"
+                        [selectedTileKey]="selectedTileKey"
+                        [playableTileKeys]="playableTileKeys"
+                        [playerId]="match.humanPlayer"
+                        [playerName]="match.humanPlayerName"
+                        [canInteract]="match.isHumanTurn && !match.isMovePending && !match.isMatchOver && !match.isRoundOver && playableMoves.length > 0"
+                        [isCurrentPlayer]="isCurrentHumanPlayer"
+                        [isNextPlayer]="isNextHumanPlayer"
+                        [didAStartRound]="didHumanStartRound"
+                        (selectTile)="handleSelectTile($event)"
+                        (dragTileStart)="handleDragTileStart($event)"
+                        (dragTileEnd)="handleDragTileEnd()">
+                    </app-player-hand>
+                </div>
+                <ng-template #spectatorSlot>
+                    <div class="hand-slot spectator-slot">
+                        Assistindo como espectador
+                    </div>
+                </ng-template>
+
+                <div *ngIf="!match.isSpectator" class="mobile-hand-actions">
+                    <button
+                        *ngIf="match.canStartNextRound; else mobileNewMatchButton"
+                        type="button"
+                        class="mobile-hand-action primary-action"
+                        (click)="match.startNextRound()">
+                        Proxima
+                    </button>
+                    <ng-template #mobileNewMatchButton>
+                        <button type="button" class="mobile-hand-action primary-action" (click)="handleStartNewMatch()">
+                            Nova
+                        </button>
+                    </ng-template>
+
+                    <button type="button" class="mobile-hand-action secondary-action" (click)="handleLeaveGame()">
+                        Sair
+                    </button>
+                </div>
+            </div>
+
+            <app-mobile-reaction-menu
+                *ngIf="!match.isSpectator"
+                [reactionOptions]="reactionOptions"
+                (sendReaction)="handleSendReaction($event)"
+                (sendLaughReaction)="handleSendLaughReaction()">
+            </app-mobile-reaction-menu>
+
+            <div class="mobile-side-panel">
+                <button type="button" class="mobile-history-board" (click)="openMoveHistory()">
+                    <div class="mobile-history-board-content">
+                        <div *ngIf="recentMoveHistory.length === 0" class="mobile-history-empty">Sem jogadas</div>
+                        <div *ngFor="let item of recentMoveHistory" class="mobile-history-line">
+                            <span>{{ item.description }}</span>
+                            <strong *ngIf="item.points > 0">+{{ item.points }}</strong>
+                        </div>
+                    </div>
+                </button>
+
+                <div class="mobile-side-divider" aria-hidden="true"></div>
+
+                <div class="mobile-score-board" aria-label="Placar atual">
+                    <div class="mobile-score-board-content">
+                        <div class="mobile-score-line" [class.leading]="match.score.AC >= match.score.BD">
+                            <span>{{ acTeamLabel }}</span>
+                            <strong>{{ match.score.AC }}</strong>
+                        </div>
+                        <div class="mobile-score-line" [class.leading]="match.score.BD >= match.score.AC">
+                            <span>{{ bdTeamLabel }}</span>
+                            <strong>{{ match.score.BD }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p *ngIf="match.isSpectator" class="room-note spectator-note">
+                Voce entrou como espectador. Acompanhe a mesa em tempo real, sem ocupar uma posicao.
+            </p>
+
+            <details class="mobile-details">
+                <summary>Ver turno e historico</summary>
+                <div class="details-content">
+                    <app-turn-indicator
+                        [currentPlayer]="match.currentPlayer!"
+                        [currentPlayerName]="playerLabel(match.currentPlayer)"
+                        [roundStarter]="playerOrCurrent(match.roundStarter)"
+                        [roundStarterName]="playerLabel(match.roundStarter)"
+                        [nextPlayer]="playerOrCurrent(match.nextPlayer)"
+                        [nextPlayerName]="playerLabel(match.nextPlayer)"
+                        [isHumanTurn]="match.isHumanTurn"
+                        [isBotTurn]="match.isBotTurn"
+                        [botThinkingPlayer]="match.botThinkingPlayer"
+                        [botActionCountdown]="match.botCountdownLabel"
+                        [botDelaySeconds]="10"
+                        [turnSecondsLeft]="turnSecondsLeft"
+                        [turnDurationSeconds]="15">
+                    </app-turn-indicator>
+                    <div class="mobile-history">
+                        <app-move-history [items]="match.moveHistory"></app-move-history>
+                    </div>
+                    <ng-container *ngTemplateOutlet="roundEndCard"></ng-container>
+                </div>
+            </details>
+        </div>
+
+        <ng-container *ngTemplateOutlet="sharedMatchLayers"></ng-container>
+
+        <div class="rotate-phone-overlay" aria-hidden="true">
+            <div>Gire o celular</div>
+        </div>
+    </main>
+
+    <ng-template #desktopMatchLayout>
+        <main class="game-shell desktop-game-shell">
+            <div class="game-grid">
+                <div class="main-column">
+                    <div class="board-holder">
+                        <app-domino-board
+                            [isMobileLayout]="false"
+                            [board]="match.roundState!.board"
+                            [boardBranches]="match.boardBranches"
+                            [players]="match.players"
+                            [nextPlayer]="match.nextPlayer"
+                            [starter]="match.roundState!.starter"
+                            [openingOrientation]="openingOrientation"
+                            [selectedEnd]="selectedEnd"
+                            [selectableEnds]="selectableEnds"
+                            [moveOptionBySide]="moveOptionBySide"
+                            [canOpenWithSelectedTile]="canOpenWithSelectedTile && match.isHumanTurn && !match.isMovePending"
+                            (selectEnd)="handleSelectEnd($event)"
+                            (playOpening)="handlePlayOpening()"
+                            (dropOnEnds)="handleDropOnBoardSides($event)"
+                            (dropOnOpening)="handleDropOnOpening()">
+                        </app-domino-board>
+                    </div>
+
+                    <div *ngIf="canHumanPass" class="pass-box">
+                        <span>Sem jogadas disponiveis.</span>
+                        <button type="button" [disabled]="match.isMovePending" (click)="handlePassTurn()">Passar</button>
+                    </div>
+
+                    <div *ngIf="!match.isSpectator; else desktopSpectatorSlot" class="desktop-hand-row">
                         <app-player-hand
                             [hand]="match.humanHand"
+                            [isMobileLayout]="false"
                             [selectedTileKey]="selectedTileKey"
                             [playableTileKeys]="playableTileKeys"
                             [playerId]="match.humanPlayer"
@@ -397,130 +542,21 @@
                             (dragTileEnd)="handleDragTileEnd()">
                         </app-player-hand>
                     </div>
-                    <ng-template #spectatorSlot>
-                        <div class="hand-slot spectator-slot">
-                            Assistindo como espectador
+                    <ng-template #desktopSpectatorSlot>
+                        <div class="desktop-hand-row">
+                            <div class="hand-slot spectator-slot">
+                                Assistindo como espectador
+                            </div>
                         </div>
                     </ng-template>
-
-                    <div *ngIf="!match.isSpectator" class="mobile-hand-actions">
-                        <button
-                            *ngIf="match.canStartNextRound; else mobileNewMatchButton"
-                            type="button"
-                            class="mobile-hand-action primary-action"
-                            (click)="match.startNextRound()">
-                            Proxima
-                        </button>
-                        <ng-template #mobileNewMatchButton>
-                            <button type="button" class="mobile-hand-action primary-action" (click)="handleStartNewMatch()">
-                                Nova
-                            </button>
-                        </ng-template>
-
-                        <button type="button" class="mobile-hand-action secondary-action" (click)="handleLeaveGame()">
-                            Sair
-                        </button>
-                    </div>
-
                 </div>
 
-                <div *ngIf="!match.isSpectator" class="reaction-bar" [class.open]="isReactionMenuOpen">
-                    <div *ngIf="isReactionMenuOpen" class="reaction-menu">
-                        <button
-                            *ngFor="let reaction of reactionOptions"
-                            type="button"
-                            class="reaction-chip"
-                            (click)="handleSendReaction(reaction)">
-                            {{ reaction }}
-                        </button>
-                        <button type="button" class="reaction-chip sound-chip" (click)="handleSendLaughReaction()">
-                            🔊
-                        </button>
-                    </div>
-
-                    <button
-                        type="button"
-                        class="reaction-trigger"
-                        [attr.aria-expanded]="isReactionMenuOpen"
-                        aria-label="Abrir reacoes"
-                        (click)="toggleReactionMenu()">
-                        😊
-                    </button>
-                </div>
-
-                <div class="mobile-side-panel">
-                    <button type="button" class="mobile-history-board" (click)="openMoveHistory()">
-                        <div class="mobile-history-board-content">
-                            <div *ngIf="recentMoveHistory.length === 0" class="mobile-history-empty">Sem jogadas</div>
-                            <div *ngFor="let item of recentMoveHistory" class="mobile-history-line">
-                                <span>{{ item.description }}</span>
-                                <strong *ngIf="item.points > 0">+{{ item.points }}</strong>
-                            </div>
-                        </div>
-                    </button>
-
-                    <div class="mobile-side-divider" aria-hidden="true"></div>
-
-                    <div class="mobile-score-board" aria-label="Placar atual">
-                        <div class="mobile-score-board-content">
-                            <div class="mobile-score-line" [class.leading]="match.score.AC >= match.score.BD">
-                                <span>{{ acTeamLabel }}</span>
-                                <strong>{{ match.score.AC }}</strong>
-                            </div>
-                            <div class="mobile-score-line" [class.leading]="match.score.BD >= match.score.AC">
-                                <span>{{ bdTeamLabel }}</span>
-                                <strong>{{ match.score.BD }}</strong>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <p *ngIf="match.isSpectator" class="room-note spectator-note">
-                    Voce entrou como espectador. Acompanhe a mesa em tempo real, sem ocupar uma posicao.
-                </p>
-
-                <details class="mobile-details">
-                    <summary>Ver turno e historico</summary>
-                    <div class="details-content">
-                        <app-turn-indicator
-                            [currentPlayer]="match.currentPlayer!"
-                            [currentPlayerName]="playerLabel(match.currentPlayer)"
-                            [roundStarter]="playerOrCurrent(match.roundStarter)"
-                            [roundStarterName]="playerLabel(match.roundStarter)"
-                            [nextPlayer]="playerOrCurrent(match.nextPlayer)"
-                            [nextPlayerName]="playerLabel(match.nextPlayer)"
-                            [isHumanTurn]="match.isHumanTurn"
-                            [isBotTurn]="match.isBotTurn"
-                            [botThinkingPlayer]="match.botThinkingPlayer"
-                            [botActionCountdown]="match.botCountdownLabel"
-                            [botDelaySeconds]="10"
-                            [turnSecondsLeft]="turnSecondsLeft"
-                            [turnDurationSeconds]="15">
-                        </app-turn-indicator>
-                        <div class="mobile-history">
-                            <app-move-history [items]="match.moveHistory"></app-move-history>
-                        </div>
-                        <ng-container *ngTemplateOutlet="roundEndCard"></ng-container>
-                    </div>
-                </details>
-            </div>
-
-            <aside class="side-column">
-                <div class="score-with-actions">
-                    <app-score-panel [score]="match.score" [acLabel]="acTeamLabel" [bdLabel]="bdTeamLabel"></app-score-panel>
-                    <div class="round-actions">
-                        <button *ngIf="match.canStartNextRound" type="button" class="primary small" (click)="match.startNextRound()">
-                            Proxima rodada
-                        </button>
-                        <button type="button" class="secondary small" (click)="handleLeaveGame()">
-                            Sair do jogo
-                        </button>
-                        <button type="button" class="secondary small history-action" (click)="openMoveHistory()">
-                            Historico
-                        </button>
-                    </div>
-                </div>
-                <app-turn-indicator
+                <app-desktop-match-sidebar
+                    [score]="match.score"
+                    [moveHistory]="match.moveHistory"
+                    [acLabel]="acTeamLabel"
+                    [bdLabel]="bdTeamLabel"
+                    [canStartNextRound]="match.canStartNextRound"
                     [currentPlayer]="match.currentPlayer!"
                     [currentPlayerName]="playerLabel(match.currentPlayer)"
                     [roundStarter]="playerOrCurrent(match.roundStarter)"
@@ -533,79 +569,91 @@
                     [botActionCountdown]="match.botCountdownLabel"
                     [botDelaySeconds]="10"
                     [turnSecondsLeft]="turnSecondsLeft"
-                    [turnDurationSeconds]="15">
-                </app-turn-indicator>
+                    [turnDurationSeconds]="15"
+                    (startNextRound)="match.startNextRound()"
+                    (leaveGame)="handleLeaveGame()"
+                    (openHistory)="openMoveHistory()">
+                    <ng-container *ngTemplateOutlet="roundEndCard"></ng-container>
+                </app-desktop-match-sidebar>
+            </div>
 
-                <div class="history-holder">
-                    <app-move-history [items]="match.moveHistory"></app-move-history>
-                </div>
+            <app-desktop-reaction-bar
+                *ngIf="!match.isSpectator"
+                [reactionOptions]="reactionOptions"
+                (sendReaction)="handleSendReaction($event)"
+                (sendLaughReaction)="handleSendLaughReaction()">
+            </app-desktop-reaction-bar>
 
-                <ng-container *ngTemplateOutlet="roundEndCard"></ng-container>
-            </aside>
-        </div>
+            <button *ngIf="!match.isSpectator" type="button" class="new-match-quiet" (click)="handleStartNewMatch()">
+                Nova partida
+            </button>
+            <button type="button" class="back-home-quiet" (click)="handleLeaveGame()">
+                Sair do jogo
+            </button>
 
-        <app-match-result-modal
-            [open]="match.isMatchOver && !hasDismissedMatchModal && !match.abandonmentPlayer"
-            [winnerTeam]="match.winnerTeam"
-            [score]="match.score"
-            (viewFinal)="hasDismissedMatchModal = true"
-            (newMatch)="handleStartNewMatch()">
-        </app-match-result-modal>
+            <ng-container *ngTemplateOutlet="sharedMatchLayers"></ng-container>
+        </main>
+    </ng-template>
+</ng-template>
 
-        <div *ngIf="match.abandonmentPlayer" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="abandon-title">
-            <div class="history-modal abandon-modal">
-                <div class="history-modal-header">
-                    <h2 id="abandon-title">Partida encerrada</h2>
-                </div>
-                <div class="history-modal-body abandon-modal-body">
-                    <p>{{ playerLabel(match.abandonmentPlayer) }} abandonou a partida.</p>
-                </div>
-                <div class="abandon-actions">
-                    <button type="button" class="primary small" (click)="handleLeaveGame()">OK</button>
-                </div>
+<ng-template #sharedMatchLayers>
+    <app-match-result-modal
+        [open]="match.isMatchOver && !hasDismissedMatchModal && !match.abandonmentPlayer"
+        [winnerTeam]="match.winnerTeam"
+        [score]="match.score"
+        (viewFinal)="hasDismissedMatchModal = true"
+        (newMatch)="handleStartNewMatch()">
+    </app-match-result-modal>
+
+    <div *ngIf="match.abandonmentPlayer" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="abandon-title">
+        <div class="history-modal abandon-modal">
+            <div class="history-modal-header">
+                <h2 id="abandon-title">Partida encerrada</h2>
+            </div>
+            <div class="history-modal-body abandon-modal-body">
+                <p>{{ playerLabel(match.abandonmentPlayer) }} abandonou a partida.</p>
+            </div>
+            <div class="abandon-actions">
+                <button type="button" class="primary small" (click)="handleLeaveGame()">OK</button>
             </div>
         </div>
+    </div>
 
-        <div *ngIf="match.galoPopup" class="galo-overlay" role="dialog" aria-modal="true" aria-labelledby="galo-title">
-            <div class="galo-modal">
-                <p class="eyebrow">Galo</p>
-                <h2 id="galo-title">{{ playerLabel(match.galoPopup.playerId) }} fez galo</h2>
-                <p>
-                    {{ match.galoPopup.team }} ganhou +{{ match.galoPopup.points }} pontos.
-                </p>
-                <button type="button" class="primary small" (click)="match.dismissGaloPopup()">Fechar</button>
+    <div *ngIf="match.galoPopup" class="galo-overlay" role="dialog" aria-modal="true" aria-labelledby="galo-title">
+        <div class="galo-modal">
+            <p class="eyebrow">Galo</p>
+            <h2 id="galo-title">{{ playerLabel(match.galoPopup.playerId) }} fez galo</h2>
+            <p>
+                {{ match.galoPopup.team }} ganhou +{{ match.galoPopup.points }} pontos.
+            </p>
+            <button type="button" class="primary small" (click)="match.dismissGaloPopup()">Fechar</button>
+        </div>
+    </div>
+
+    <div
+        *ngFor="let event of floatingEvents"
+        class="floating-event"
+        [class.score]="event.kind === 'score'"
+        [class.pass]="event.kind === 'pass'"
+        [class.reaction]="event.kind === 'reaction'"
+        [class.north]="playerPositionClass(event.playerId) === 'north'"
+        [class.south]="playerPositionClass(event.playerId) === 'south'"
+        [class.west]="playerPositionClass(event.playerId) === 'west'"
+        [class.east]="playerPositionClass(event.playerId) === 'east'">
+        {{ event.label }}
+    </div>
+
+    <div *ngIf="isHistoryOpen" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="history-title">
+        <div class="history-modal">
+            <div class="history-modal-header">
+                <h2 id="history-title">Historico de jogadas</h2>
+                <button type="button" class="secondary small" (click)="isHistoryOpen = false">Fechar</button>
+            </div>
+            <div class="history-modal-body">
+                <app-move-history [items]="match.moveHistory"></app-move-history>
             </div>
         </div>
-
-        <div
-            *ngFor="let event of floatingEvents"
-            class="floating-event"
-            [class.score]="event.kind === 'score'"
-            [class.pass]="event.kind === 'pass'"
-            [class.reaction]="event.kind === 'reaction'"
-            [class.north]="playerPositionClass(event.playerId) === 'north'"
-            [class.south]="playerPositionClass(event.playerId) === 'south'"
-            [class.west]="playerPositionClass(event.playerId) === 'west'"
-            [class.east]="playerPositionClass(event.playerId) === 'east'">
-            {{ event.label }}
-        </div>
-
-        <div *ngIf="isHistoryOpen" class="history-overlay" role="dialog" aria-modal="true" aria-labelledby="history-title">
-            <div class="history-modal">
-                <div class="history-modal-header">
-                    <h2 id="history-title">Historico de jogadas</h2>
-                    <button type="button" class="secondary small" (click)="isHistoryOpen = false">Fechar</button>
-                </div>
-                <div class="history-modal-body">
-                    <app-move-history [items]="match.moveHistory"></app-move-history>
-                </div>
-            </div>
-        </div>
-
-        <div class="rotate-phone-overlay" aria-hidden="true">
-            <div>Gire o celular</div>
-        </div>
-    </main>
+    </div>
 </ng-template>
 
 <ng-template #roundEndCard>

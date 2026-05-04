@@ -20,6 +20,7 @@ export class PlayerHandComponent {
     @Input() isCurrentPlayer = false;
     @Input() isNextPlayer = false;
     @Input() didAStartRound = false;
+    @Input() isMobileLayout = false;
     @Output() selectTile = new EventEmitter<DominoTile>();
     @Output() dragTileStart = new EventEmitter<string>();
     @Output() dragTileEnd = new EventEmitter<void>();
@@ -44,11 +45,7 @@ export class PlayerHandComponent {
     }
 
     get tileLongSidePx(): number {
-        if (typeof window === "undefined") {
-            return this.desktopTileLongSidePx;
-        }
-
-        return window.matchMedia("(max-width: 640px), (max-height: 520px)").matches
+        return this.isMobileLayout
             ? this.mobileTileLongSidePx
             : this.desktopTileLongSidePx;
     }

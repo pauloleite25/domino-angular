@@ -137,20 +137,18 @@ h2 {
         0 8px 18px rgb(19 173 125 / 24%);
 }
 
-@media (max-width: 640px), (max-height: 520px) {
-    .hand-panel {
-        border: 0;
-        border-radius: 0;
-        background: transparent;
-        box-shadow: none;
-        padding: 0;
-    }
+.hand-panel.mobile-layout {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
 
-    .hand-panel.waiting {
+    &.waiting {
         filter: saturate(0.7);
     }
 
-    .hand-panel.can-play {
+    &.can-play {
         filter: saturate(1.03);
     }
 

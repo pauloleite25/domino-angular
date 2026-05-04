@@ -439,39 +439,39 @@ h2 {
 }
 
 @media (max-width: 740px), (max-height: 600px) {
-    .board-panel {
+    .board-panel.mobile-layout {
         padding: 8px;
     }
 
-    .canvas-frame {
+    .board-panel.mobile-layout .canvas-frame {
         padding:
             clamp(8px, 4cqh, 22px)
             clamp(16px, 3cqw, 42px)
             clamp(8px, 4cqh, 22px);
     }
 
-    .canvas-viewport {
+    .board-panel.mobile-layout .canvas-viewport {
         overflow: visible;
         touch-action: pan-x pan-y;
     }
 
-    .canvas-viewport::-webkit-scrollbar {
+    .board-panel.mobile-layout .canvas-viewport::-webkit-scrollbar {
         width: 6px;
         height: 6px;
     }
 
-    .canvas-viewport::-webkit-scrollbar-thumb {
+    .board-panel.mobile-layout .canvas-viewport::-webkit-scrollbar-thumb {
         border-radius: 999px;
         background: #d4d4d8;
     }
 
-    .table-player {
+    .board-panel.mobile-layout .table-player {
         max-width: min(36vw, 170px);
         font-size: 9px;
         padding: 4px 6px;
     }
 
-    .table-player-card.north {
+    .board-panel.mobile-layout .table-player-card.north {
         top: -8px;
         width: fit-content;
         max-width: min(74vw, 310px);
@@ -479,62 +479,62 @@ h2 {
         padding: 8px 10px;
     }
 
-    .table-player-card.west,
-    .table-player-card.east {
+    .board-panel.mobile-layout .table-player-card.west,
+    .board-panel.mobile-layout .table-player-card.east {
         width: 60px;
         min-height: 0;
         gap: 10px;
         padding: 10px 6px 8px;
     }
 
-    .table-player-name {
+    .board-panel.mobile-layout .table-player-name {
         font-size: 13px;
     }
 
-    .table-player-count {
+    .board-panel.mobile-layout .table-player-count {
         font-size: 10px;
     }
 
-    .table-player-card.west .table-player-name,
-    .table-player-card.east .table-player-name {
+    .board-panel.mobile-layout .table-player-card.west .table-player-name,
+    .board-panel.mobile-layout .table-player-card.east .table-player-name {
         font-size: 9px;
     }
 
-    .table-player-card.west .table-player-count,
-    .table-player-card.east .table-player-count {
+    .board-panel.mobile-layout .table-player-card.west .table-player-count,
+    .board-panel.mobile-layout .table-player-card.east .table-player-count {
         font-size: 8px;
     }
 
-    .hidden-tile {
+    .board-panel.mobile-layout .hidden-tile {
         width: 13px;
         height: 28px;
         border-radius: 5px;
     }
 
-    .table-player-card.north .hidden-tile {
+    .board-panel.mobile-layout .table-player-card.north .hidden-tile {
         width: 13px;
         height: 28px;
     }
 
-    .side-card .hidden-tile {
+    .board-panel.mobile-layout .side-card .hidden-tile {
         width: 36px;
         height: 20px;
         border-radius: 4px;
     }
 
-    .table-player.north {
+    .board-panel.mobile-layout .table-player.north {
         top: -12px;
     }
 
-    .table-player.south {
+    .board-panel.mobile-layout .table-player.south {
         bottom: -12px;
     }
 
-    .table-player.west {
+    .board-panel.mobile-layout .table-player.west {
         left: -10px;
     }
 
-    .table-player.east {
+    .board-panel.mobile-layout .table-player.east {
         right: -10px;
     }
 
