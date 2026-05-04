@@ -661,6 +661,16 @@ export class MatchFacadeService implements OnDestroy {
         localWithReaction.sendReaction?.(emoji);
     }
 
+    sendLaughReaction(): void {
+        if (this.isBackendMode) {
+            void this.submitBackendReaction("😆");
+            return;
+        }
+
+        const localWithReaction = this.local as LocalMatchService & { sendLaughReaction?: () => void };
+        localWithReaction.sendLaughReaction?.();
+    }
+
     playHumanMove(move: LegalMove): void {
         if (!this.isBackendMode) {
             this.local.playHumanMove(move);

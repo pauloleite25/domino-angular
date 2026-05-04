@@ -463,7 +463,7 @@ export class LocalMatchScreenComponent implements DoCheck, OnDestroy {
     }
 
     handleSendLaughReaction(): void {
-        this.match.sendReaction("🤣");
+        this.match.sendLaughReaction();
     }
 
     async handleStartNewMatch(): Promise<void> {
