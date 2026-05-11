@@ -363,7 +363,7 @@ function getRoundEndSummary(round: RoundState, result: RoundResult): RoundEndSum
     const roundedFrom =
         result.reason === "batida"
             ? loserHands.reduce((sum, hand) => sum + hand.total, 0)
-            : Math.abs(totals.AC - totals.BD);
+            : totals[loserTeam];
 
     return {
         roundNumber: round.roundNumber,
