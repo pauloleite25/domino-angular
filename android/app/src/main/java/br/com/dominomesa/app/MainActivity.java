@@ -1,4 +1,4 @@
-package br.com.domino.mesa;
+package br.com.dominomesa.app;
 
 import android.os.Bundle;
 import android.view.View;

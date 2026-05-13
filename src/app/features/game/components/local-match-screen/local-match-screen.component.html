@@ -45,6 +45,9 @@
 
                 <p *ngIf="roomStatusMessage" class="android-room-message status">{{ roomStatusMessage }}</p>
                 <p *ngIf="roomErrorMessage" class="android-room-message error">{{ roomErrorMessage }}</p>
+                <a class="privacy-entry-link android-privacy-entry-link" routerLink="/politica-de-privacidade">
+                    Política de Privacidade
+                </a>
             </div>
         </section>
 
@@ -203,6 +206,9 @@
                 <p *ngIf="match.networkRoomId && !match.isNetworkGuest" class="room-note">
                     Sala <strong>{{ match.networkRoomId }}</strong> criada. Compartilhe esse codigo e aguarde seus amigos entrarem para iniciar.
                 </p>
+                <a class="privacy-entry-link" routerLink="/politica-de-privacidade">
+                    Política de Privacidade
+                </a>
             </div>
         </div>
 

@@ -434,43 +434,6 @@
     opacity: 0.58;
 }
 
-.lobby-status {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 6px;
-    margin: 16px 24px 24px;
-}
-
-.lobby-status.compact {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: 0;
-}
-
-.lobby-status span {
-    border: 1px solid #41524b;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 800;
-    min-width: 0;
-    overflow: hidden;
-    background: #f7fbf8;
-    padding: 9px 8px;
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.lobby-status .occupied {
-    border-color: #1a8a62;
-    background: #dff6e9;
-    color: #0a4538;
-}
-
-.lobby-status .empty {
-    background: #17201c;
-    color: #d8ebe4;
-}
-
 .room-note,
 .room-status,
 .room-error {

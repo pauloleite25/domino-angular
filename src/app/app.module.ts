@@ -15,6 +15,7 @@ import { MoveHistoryComponent } from './features/game/components/move-history/mo
 import { PlayerHandComponent } from './features/game/components/player-hand/player-hand.component';
 import { ScorePanelComponent } from './features/game/components/score-panel/score-panel.component';
 import { TurnIndicatorComponent } from './features/game/components/turn-indicator/turn-indicator.component';
+import { PrivacyPolicyComponent } from './features/legal/components/privacy-policy/privacy-policy.component';
 
 @NgModule({
   declarations: [
@@ -29,7 +30,8 @@ import { TurnIndicatorComponent } from './features/game/components/turn-indicato
     ScorePanelComponent,
     TurnIndicatorComponent,
     MoveHistoryComponent,
-    MatchResultModalComponent
+    MatchResultModalComponent,
+    PrivacyPolicyComponent
   ],
   imports: [
     BrowserModule,

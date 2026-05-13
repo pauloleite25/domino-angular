@@ -8,6 +8,7 @@
     "dev:angular": "ng serve --host 0.0.0.0 --poll 1000",
     "lan-duo": "node scripts/lan-duo-server.mjs",
     "build": "ng build",
+    "serve:dist": "node server.mjs",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "legacy:start": "node scripts/lan-duo-server.mjs",

@@ -1,0 +1,50 @@
+<main class="privacy-page">
+  <section class="privacy-shell">
+    <header class="privacy-hero">
+      <a class="back-link" routerLink="/">Voltar ao jogo</a>
+      <p class="eyebrow">Domino</p>
+      <h1>Política de Privacidade</h1>
+      <p class="intro">
+        Esta Política de Privacidade descreve como este aplicativo de jogo de dominó coleta, utiliza,
+        armazena e protege as informações dos usuários.
+      </p>
+    </header>
+
+    <div class="privacy-content">
+      <section class="summary-card" aria-label="Resumo da politica">
+        <div>
+          <strong>Aplicativo</strong>
+          <span>Jogo de dominó para web e Android via Capacitor</span>
+        </div>
+        <div>
+          <strong>Contato</strong>
+          <a [href]="'mailto:' + supportEmail">{{ supportEmail }}</a>
+        </div>
+        <div>
+          <strong>Última atualização</strong>
+          <span>{{ lastUpdated }}</span>
+        </div>
+      </section>
+
+      <section class="policy-section" *ngFor="let section of sections">
+        <h2>{{ section.title }}</h2>
+        <p *ngFor="let paragraph of section.paragraphs">{{ paragraph }}</p>
+        <ul *ngIf="section.items?.length">
+          <li *ngFor="let item of section.items">{{ item }}</li>
+        </ul>
+      </section>
+
+      <section class="policy-section contact-highlight">
+        <h2>Suporte</h2>
+        <p>
+          Para exercer seus direitos ou esclarecer duvidas sobre privacidade, escreva para
+          <a [href]="'mailto:' + supportEmail">{{ supportEmail }}</a>.
+        </p>
+      </section>
+
+      <footer class="privacy-footer">
+        <span>Última atualização: {{ lastUpdated }}</span>
+      </footer>
+    </div>
+  </section>
+</main>

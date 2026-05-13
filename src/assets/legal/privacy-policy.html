@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Politica de Privacidade | Domino Mesa</title>
+  <meta name="description" content="Politica de privacidade do app Domino Mesa.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f1e7;
+      --surface: rgba(255, 252, 247, 0.94);
+      --text: #1d251d;
+      --muted: #5d665f;
+      --line: rgba(30, 45, 31, 0.14);
+      --accent: #2f5d3d;
+      --accent-2: #8c6a35;
+      --shadow: 0 24px 60px rgba(34, 42, 31, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(140, 106, 53, 0.16), transparent 32%),
+        linear-gradient(180deg, #f2e8d6 0%, var(--bg) 42%, #efe7d8 100%);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 32px auto 48px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero {
+      padding: 40px 28px 24px;
+      background:
+        linear-gradient(135deg, rgba(47, 93, 61, 0.92), rgba(23, 53, 34, 0.96)),
+        linear-gradient(90deg, rgba(140, 106, 53, 0.18), transparent);
+      color: #f8f5ef;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      opacity: 0.82;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 44px);
+      line-height: 1.05;
+    }
+
+    .hero p {
+      margin: 14px 0 0;
+      max-width: 720px;
+      font-size: 16px;
+      color: rgba(248, 245, 239, 0.9);
+    }
+
+    .content {
+      padding: 28px;
+    }
+
+    .meta {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 28px;
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.58);
+    }
+
+    .meta strong,
+    h2 {
+      color: var(--accent);
+    }
+
+    h2 {
+      margin: 28px 0 10px;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    p, li {
+      font-size: 15px;
+    }
+
+    ul {
+      margin: 10px 0 0;
+      padding-left: 20px;
+    }
+
+    section + section {
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+    }
+
+    a {
+      color: var(--accent-2);
+    }
+
+    .note {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent-2);
+      background: rgba(140, 106, 53, 0.08);
+      border-radius: 12px;
+    }
+
+    footer {
+      margin-top: 28px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 640px) {
+      main {
+        width: min(100% - 20px, 920px);
+        margin: 10px auto 24px;
+        border-radius: 18px;
+      }
+
+      .hero,
+      .content {
+        padding: 22px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">Domino Mesa</p>
+      <h1>Politica de Privacidade</h1>
+      <p>Esta politica explica quais dados o Domino Mesa processa, por que eles sao usados e como o jogador pode entender o fluxo de dados do app.</p>
+    </section>
+
+    <div class="content">
+      <div class="meta">
+        <div><strong>Ultima atualizacao:</strong> 11 de maio de 2026</div>
+        <div><strong>Aplicativo:</strong> Domino Mesa</div>
+        <div><strong>Pacote Android:</strong> br.com.dominomesa.app</div>
+      </div>
+
+      <section>
+        <h2>1. Escopo</h2>
+        <p>O Domino Mesa e um jogo de domino com modo local contra CPU e modo online casual por salas. Esta politica vale para o app Android e para as interacoes online usadas pelo jogo.</p>
+      </section>
+
+      <section>
+        <h2>2. Dados processados</h2>
+        <p>Dependendo do modo de uso, o app pode processar os seguintes dados:</p>
+        <ul>
+          <li>nickname informado pelo jogador para entrar em uma sala online;</li>
+          <li>codigo da sala, senha da sala e papel escolhido na partida online;</li>
+          <li>chave temporaria de sessao gerada pelo backend para autorizar a participacao casual;</li>
+          <li>estado da partida, jogadas, historico, reacoes e pontuacao;</li>
+          <li>dados tecnicos necessarios para entregar o servico, como endereco IP, logs de requisicao, eventos de conexao e metadados usados para seguranca, estabilidade e limitacao de abuso.</li>
+        </ul>
+        <p>No modo local contra CPU, a partida roda no proprio dispositivo e nao exige criacao de conta.</p>
+      </section>
+
+      <section>
+        <h2>3. Como os dados sao usados</h2>
+        <ul>
+          <li>criar uma sessao casual sem login tradicional;</li>
+          <li>criar, entrar, observar e sincronizar salas online;</li>
+          <li>executar a logica da partida e atualizar o estado em tempo real;</li>
+          <li>evitar fraude, abuso, tentativas repetidas de senha e uso indevido do servico;</li>
+          <li>diagnosticar falhas tecnicas e manter o funcionamento do jogo.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>4. Armazenamento no dispositivo</h2>
+        <p>O app pode armazenar localmente:</p>
+        <ul>
+          <li>configuracao do endereco do backend em <code>localStorage</code>;</li>
+          <li>dados temporarios da sessao online em <code>sessionStorage</code>, para manter a participacao do jogador enquanto a aba ou a sessao do app estiver ativa.</li>
+        </ul>
+        <p>Esses dados sao usados para continuidade da experiencia e podem ser removidos quando a sessao expira, quando o jogador sai da sala ou quando os dados deixam de ser validos.</p>
+      </section>
+
+      <section>
+        <h2>5. Compartilhamento</h2>
+        <p>O Domino Mesa nao vende dados pessoais. Alguns dados podem ser compartilhados apenas nas seguintes situacoes:</p>
+        <ul>
+          <li>com a infraestrutura tecnica usada para hospedar o backend e entregar o servico;</li>
+          <li>com outros jogadores da mesma sala, na medida necessaria para mostrar nickname, ocupacao de assentos, estado da partida e reacoes de jogo;</li>
+          <li>quando houver obrigacao legal, regulatoria ou solicitacao valida de autoridade competente.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. Seguranca</h2>
+        <p>O projeto adota medidas tecnicas e organizacionais razoaveis para proteger as sessoes e o fluxo online. Isso inclui validacao de sessao, restricao de origens confiaveis no cliente e controles de abuso no backend. Ainda assim, nenhum sistema conectado a internet pode garantir seguranca absoluta.</p>
+      </section>
+
+      <section>
+        <h2>7. Retencao</h2>
+        <p>Dados de partida, participacao e historico podem ser mantidos pelo backend pelo tempo necessario para operar o multiplayer, preservar o estado das salas, manter o historico do jogo e suportar seguranca, auditoria e evolucao futura do servico.</p>
+      </section>
+
+      <section>
+        <h2>8. Menores de idade</h2>
+        <p>O Domino Mesa nao foi projetado especificamente para criancas pequenas e nao exige criacao de conta com dados cadastrais extensos. Ainda assim, responsables devem avaliar o uso do modo online por menores.</p>
+      </section>
+
+      <section>
+        <h2>9. Seus controles</h2>
+        <ul>
+          <li>voce pode usar o modo local sem entrar em salas online;</li>
+          <li>voce pode escolher o nickname exibido no modo casual;</li>
+          <li>voce pode sair da sala e encerrar a sessao atual no app;</li>
+          <li>voce pode limpar dados locais do app nas configuracoes do dispositivo.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>10. Contato</h2>
+        <p>Para duvidas sobre privacidade, use o e-mail de suporte informado na pagina do app na Google Play ou no canal oficial informado pelo publicador do aplicativo.</p>
+        <p class="note">Antes de publicar, confirme que o e-mail de suporte da Play Console esta preenchido e funcional. Essa pagina deve ficar publica em uma URL acessivel sem login.</p>
+      </section>
+
+      <footer>
+        URL sugerida apos deploy: <code>/assets/legal/privacy-policy.html</code>
+      </footer>
+    </div>
+  </main>
+</body>
+</html>

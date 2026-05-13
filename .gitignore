@@ -47,6 +47,9 @@ Thumbs.db
 .env.*.local
 *.key
 *.pem
+android/key.properties
+android/*.jks
+android/*.keystore
 
 # Dependencies (AIOX)
 node_modules/
